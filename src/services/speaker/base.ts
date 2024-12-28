@@ -302,7 +302,6 @@ export class BaseSpeaker {
     // 播放回复
     const play = async (args?: { tts?: string; url?: string }) => {
       this.logger.log("🔊 " + (ttsText ?? audio));
-      console.log(playSFX)
       // 播放开始提示音
       if (playSFX && this.audioBeep) {
         if (this.debug) {
@@ -310,20 +309,15 @@ export class BaseSpeaker {
         }
         await this.MiNA!.play({ url: this.audioBeep });
       }
-      console.log(ttsNotXiaoai)
       // 在播放 TTS 语音之前，先取消小爱音箱的唤醒状态，防止将 TTS 语音识别成用户指令
       if (ttsNotXiaoai) {
         await this.unWakeUp();
       }
-      console.log(11111)
-      console.log(args?.tts)
-      console.log(this.ttsCommand)
       if (args?.tts) {
         await this.MiIOT!.doAction(...this.ttsCommand, args.tts);
       } else {
         await this.MiNA!.play(args);
       }
-      console.log(33333)
       if (!this.streamResponse) {
         // 非流式响应，直接返回，不再等待设备播放完毕
         // todo 考虑后续通过 MIoT 通知事件，接收设备播放状态变更通知。

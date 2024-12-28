@@ -13,16 +13,16 @@ export default {
     "did": "小爱音箱Play增强版",
     "ttsCommand": [
       5,
-      1
+      3
     ],
     "wakeUpCommand": [
       5,
-      3
+      1
     ],
     "playingCommand": [
-      3,
-      1,
-      1
+      0,
+      0,
+      0
     ],
     "callAIKeywords": [
       "请",
@@ -55,9 +55,9 @@ export default {
     "tts": "xiaoai",
     "streamResponse": false,
     "exitKeepAliveAfter": 5,
-    "checkTTSStatusAfter": 3,
-    "checkInterval": 900,
-    "timeout": 3000,
+    "checkTTSStatusAfter": 1,
+    "checkInterval": 5000,
+    "timeout": 9000,
     "debug": false,
     "enableTrace": false,
     "switchSpeakerKeywords": [],
