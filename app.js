@@ -209,19 +209,19 @@ app.post('/api/config', async (req, res) => {
     await fs.promises.writeFile('./.migpt.example.js', configContent, 'utf8');
 
     // 获取当前选中的 AI 服务配置
-    const selectedService = Object.keys(config).find(key =>
-      ['openai', 'azure', 'zhipu', 'tongyi', 'doubao', 'custom'].includes(key) &&
-      config[key]?.apiKey &&
-      config[key]?.model &&
-      config[key]?.endpoint
-    );
+    // const selectedService = Object.keys(config).find(key =>
+    //   ['openai', 'azure', 'zhipu', 'tongyi', 'doubao', 'custom'].includes(key) &&
+    //   config[key]?.apiKey &&
+    //   config[key]?.model &&
+    //   config[key]?.endpoint
+    // );
 
     // 构建 .env 内容
     const envLines = [];
 
     // 如果有选中的 AI 服务配置，添加到 .env 文件
-    if (selectedService) {
-      const serviceConfig = config[selectedService];
+    if (config['selectedAIService']) {
+      const serviceConfig = config[config['selectedAIService']];
       envLines.push(
         `OPENAI_API_KEY=${serviceConfig.apiKey}`,
         `OPENAI_MODEL=${serviceConfig.model}`,

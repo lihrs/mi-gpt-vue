@@ -1292,23 +1292,27 @@ export default {
           }
 
           // 找到当前使用的 AI 服务
-          const activeService = Object.entries(this.config).find(
-            ([key, value]) =>
-              [
-                "openai",
-                "azure",
-                "zhipu",
-                "tongyi",
-                "doubao",
-                "custom",
-              ].includes(key) &&
-              value.apiKey &&
-              value.model &&
-              value.endpoint
-          );
+          // const activeService = Object.entries(this.config).find(
+          //   ([key, value]) =>
+          //     [
+          //       "openai",
+          //       "azure",
+          //       "zhipu",
+          //       "tongyi",
+          //       "doubao",
+          //       "custom",
+          //     ].includes(key) &&
+          //     value.apiKey &&
+          //     value.model &&
+          //     value.endpoint
+          // );
+          //
+          // if (activeService) {
+          //   this.selectedAIService = activeService[0];
+          // }
 
-          if (activeService) {
-            this.selectedAIService = activeService[0];
+          if(parsedConfig['selectedAIService']){
+            this.selectedAIService = parsedConfig['selectedAIService'];
           }
 
           // 从配置中加载设备型号
@@ -1339,6 +1343,7 @@ export default {
         // 创建配置的副本
         const configToSave = JSON.parse(JSON.stringify(this.config));
 
+        configToSave['selectedAIService'] = this.selectedAIService
         // 处理模板变量替换
         const variables = {
           "{{botName}}": configToSave.bot.name || "未设置",

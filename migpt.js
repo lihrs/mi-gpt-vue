@@ -8,8 +8,8 @@ export default {
     "profile": ""
   },
   "speaker": {
-    "userId": "1234",
-    "password": "00000",
+    "userId": "2450573109",
+    "password": "652382czx",
     "did": "小爱音箱Play增强版",
     "ttsCommand": [
       5,
@@ -90,11 +90,12 @@ export default {
     "model": "ep-20241129085411-rczvl"
   },
   "custom": {
-    "apiKey": "",
-    "model": "",
-    "endpoint": ""
+    "apiKey": "sk-U5vko6vwpPwOjNxN9997Bc4cCdC142FdA555547eC8A74dA3",
+    "model": "SparkDesk",
+    "endpoint": "http://192.168.9.113:11330/v1"
   },
   "tts": {
     "baseUrl": "https://your-azure-endpoint/tts"
-  }
+  },
+  "selectedAIService": "custom"
 };
