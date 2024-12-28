@@ -197,6 +197,26 @@ async function initMiGPT() {
   }
 }
 
+/**
+ * 删除.bot.json和.mi.json
+ */
+const deleteBotAndMiFile = () => {
+  const botJsonPath = './.bot.json'
+  console.log(`检查${botJsonPath}`)
+  if (fs.existsSync(botJsonPath)) {
+    console.log(`存在${botJsonPath}，就删除它`);
+    // 文件存在，删除文件
+    fs.unlinkSync(botJsonPath);
+  }
+  const miJsonPath = './.mi.json'
+  console.log(`检查${miJsonPath}`)
+  if (fs.existsSync(miJsonPath)) {
+    console.log(`存在${miJsonPath}，就删除它`);
+    // 文件存在，删除文件
+    fs.unlinkSync(miJsonPath);
+  }
+}
+
 // 配置相路由
 app.post('/api/config', async (req, res) => {
   try {
@@ -362,6 +382,8 @@ app.post('/api/service/start', async (req, res) => {
   try {
     console.log('\n=== 启动 MiGPT 服务 ===');
 
+    //删除配置文件
+    deleteBotAndMiFile()
     // 初始化实例
     const instance = await initMiGPT();
 
@@ -437,6 +459,9 @@ app.post('/api/service/stop', async (req, res) => {
 app.post('/api/service/restart', async (req, res) => {
   try {
     console.log('\n=== 正在重启 MiGPT 服务 ===');
+
+    //删除配置文件
+    deleteBotAndMiFile()
 
     // 1. 停止当前服务
     if (miGPTInstance) {
