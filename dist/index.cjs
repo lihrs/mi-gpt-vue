@@ -637,20 +637,26 @@ var BaseSpeaker = class {
     playSFX = this.streamResponse && ttsNotXiaoai && playSFX;
     const play = async (args) => {
       this.logger.log("\u{1F50A} " + (ttsText ?? audio));
+      console.log(playSFX);
       if (playSFX && this.audioBeep) {
         if (this.debug) {
           this.logger.debug("\u5F00\u59CB\u64AD\u653E\u63D0\u793A\u97F3\uFF08inner\uFF09");
         }
         await this.MiNA.play({ url: this.audioBeep });
       }
+      console.log(ttsNotXiaoai);
       if (ttsNotXiaoai) {
         await this.unWakeUp();
       }
+      console.log(11111);
+      console.log(args == null ? void 0 : args.tts);
+      console.log(this.ttsCommand);
       if (args == null ? void 0 : args.tts) {
         await this.MiIOT.doAction(...this.ttsCommand, args.tts);
       } else {
         await this.MiNA.play(args);
       }
+      console.log(33333);
       if (!this.streamResponse) {
         return;
       }
