@@ -239,9 +239,11 @@ app.post('/api/config', async (req, res) => {
     // 构建 .env 内容
     const envLines = [];
 
+    console.log(2222)
     // 如果有选中的 AI 服务配置，添加到 .env 文件
     if (config['selectedAIService']) {
       const serviceConfig = config[config['selectedAIService']];
+      console.log(serviceConfig)
       envLines.push(
         `OPENAI_API_KEY=${serviceConfig.apiKey}`,
         `OPENAI_MODEL=${serviceConfig.model}`,
