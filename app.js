@@ -239,9 +239,6 @@ app.post('/api/config', async (req, res) => {
     // 构建 .env 内容
     const envLines = [];
 
-    console.log(11111)
-    console.log(config)
-    console.log(config['selectedAIService'])
     // 如果有选中的 AI 服务配置，添加到 .env 文件
     if (config['selectedAIService']) {
       const serviceConfig = config[config['selectedAIService']];
@@ -257,11 +254,13 @@ app.post('/api/config', async (req, res) => {
       envLines.push(`TTS_BASE_URL=${config.tts.baseUrl}`);
     }
 
+    console.log(123)
+    console.log(envLines)
     // 确保有内容才写入文件
     if (envLines.length > 0) {
       const envContent = envLines.join('\n');
       await fs.promises.writeFile('.env', envContent, 'utf8');
-      //console.log('.env 文件已更新');
+      console.log('.env 文件已更新');
     }
 
     // 如果服务正在运行，需要重启才能生效
