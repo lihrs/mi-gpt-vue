@@ -239,6 +239,9 @@ app.post('/api/config', async (req, res) => {
     // 构建 .env 内容
     const envLines = [];
 
+    console.log(11111)
+    console.log(config)
+    console.log(config['selectedAIService'])
     // 如果有选中的 AI 服务配置，添加到 .env 文件
     if (config['selectedAIService']) {
       const serviceConfig = config[config['selectedAIService']];
