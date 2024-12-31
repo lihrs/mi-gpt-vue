@@ -1134,7 +1134,7 @@ var getDefaultSwitchSpeakerPrefix = () => {
   };
   return generateSentences(words);
 };
-var fileContents = readFileSync("./data.yml", "utf8");
+var fileContents = readFileSync("./env.yml", "utf8");
 var config = yaml.load(fileContents);
 console.log(1111);
 console.log(config);

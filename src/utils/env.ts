@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import * as yaml from 'js-yaml';
 // 读取 YAML 配置文件
-const fileContents = readFileSync('./data.yml', 'utf8');
+const fileContents = readFileSync('./env.yml', 'utf8');
 // 解析 YAML 文件内容为 JavaScript 对象
 const config = yaml.load(fileContents);
 
