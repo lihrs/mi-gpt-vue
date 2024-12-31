@@ -35,6 +35,7 @@ class OpenAIClient {
     console.log(this.deployment)
     console.log(kEnvs.AZURE_OPENAI_API_KEY)
     console.log(!this._client)
+    console.log(process.env)
     console.log(process.env.OPENAI_API_KEY)
     if (!this._client) {
       this._client = kEnvs.AZURE_OPENAI_API_KEY
