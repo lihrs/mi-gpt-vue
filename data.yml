@@ -1,5 +1,5 @@
 services:
-  webapp:
+  mi-gpt:
     environment:
       ABC: "true"
       EEEE: "true"
