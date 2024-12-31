@@ -7,13 +7,7 @@ additionalProperties:
       type: text
 
 environment:
-  - OPENAI_API_KEY=sk-U5vko6vwpPwOjNxN9997Bc4cCdC142FdA555547eC8A74dA3
-  - SHOW=true
-  - USER_INPUT
+  OPENAI_API_KEY=sk-U5vko6vwpPwOjNxN9997Bc4cCdC142FdA555547eC8A74dA3
+  SHOW=true
+  USER_INPUT
 
-
-services:
-  common:
-    environment:
-      TZ: utc
-      PORT: 80
