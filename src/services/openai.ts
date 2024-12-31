@@ -43,7 +43,7 @@ class OpenAIClient {
             httpAgent: kProxyAgent,
             deployment: this.deployment,
           })
-        : new OpenAI({ httpAgent: kProxyAgent });
+        : new OpenAI({ apiKey: kEnvs.OPENAI_API_KEY, httpAgent: kProxyAgent });
     }
   }
 

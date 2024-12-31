@@ -1189,7 +1189,7 @@ var OpenAIClient = class {
       this._client = kEnvs.AZURE_OPENAI_API_KEY ? new OpenAI.AzureOpenAI({
         httpAgent: kProxyAgent,
         deployment: this.deployment
-      }) : new OpenAI__default.default({ httpAgent: kProxyAgent });
+      }) : new OpenAI__default.default({ apiKey: kEnvs.OPENAI_API_KEY, httpAgent: kProxyAgent });
     }
   }
   _abortCallbacks = {
