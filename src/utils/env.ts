@@ -5,12 +5,14 @@ const fileContents = readFileSync('./env.yml', 'utf8');
 // 解析 YAML 文件内容为 JavaScript 对象
 const config = yaml.load(fileContents);
 
+
 export const kEnvs: Partial<{
   MI_USER: string;
   MI_PASS: string;
   MI_DID: string;
   OPENAI_MODEL: string;
   OPENAI_API_KEY: string;
+  OPENAI_BASE_URL: string;
   AZURE_OPENAI_API_KEY: string;
   AZURE_OPENAI_DEPLOYMENT: string;
 }> = config as any;
