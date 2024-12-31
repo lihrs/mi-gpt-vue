@@ -25,7 +25,7 @@
   "scripts": {
     "install-deps": "npm install && cd frontend && npm install",
     "build": "npx -y prisma generate && rm -rf dist && tsup",
-    "start": "node app.js"
+    "start": "set NODE_ENV=production && node app.js"
   },
   "dependencies": {
     "@prisma/client": "^5.14.0",
