@@ -239,11 +239,9 @@ app.post('/api/config', async (req, res) => {
         // 构建 env.yml 内容
         const envLines = [];
 
-        console.log(2222)
         // 如果有选中的 AI 服务配置，添加到 env.yml 文件
         if (config['selectedAIService']) {
             const serviceConfig = config[config['selectedAIService']];
-            console.log(serviceConfig)
             envLines.push(
                 `OPENAI_API_KEY: ${serviceConfig.apiKey}`,
                 `OPENAI_MODEL: ${serviceConfig.model}`,
@@ -256,8 +254,6 @@ app.post('/api/config', async (req, res) => {
             envLines.push(`TTS_BASE_URL: ${config.tts.baseUrl}`);
         }
 
-        console.log(123)
-        console.log(envLines)
         // 确保有内容才写入文件
         if (envLines.length > 0) {
             const envContent = envLines.join('\n');
