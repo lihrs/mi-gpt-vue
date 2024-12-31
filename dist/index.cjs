@@ -3,17 +3,38 @@
 var miServiceLite = require('mi-service-lite');
 var crypto = require('crypto');
 var OpenAI = require('openai');
+var fs = require('fs');
+var yaml = require('js-yaml');
 var proxyAgent = require('proxy-agent');
 var client = require('@prisma/client');
-var fs = require('fs-extra');
+var fs$1 = require('fs-extra');
 var path = require('path');
 var child_process = require('child_process');
 var util = require('util');
 
 function _interopDefault (e) { return e && e.__esModule ? e : { default: e }; }
 
+function _interopNamespace(e) {
+  if (e && e.__esModule) return e;
+  var n = Object.create(null);
+  if (e) {
+    Object.keys(e).forEach(function (k) {
+      if (k !== 'default') {
+        var d = Object.getOwnPropertyDescriptor(e, k);
+        Object.defineProperty(n, k, d.get ? d : {
+          enumerable: true,
+          get: function () { return e[k]; }
+        });
+      }
+    });
+  }
+  n.default = e;
+  return Object.freeze(n);
+}
+
 var OpenAI__default = /*#__PURE__*/_interopDefault(OpenAI);
-var fs__default = /*#__PURE__*/_interopDefault(fs);
+var yaml__namespace = /*#__PURE__*/_interopNamespace(yaml);
+var fs__default = /*#__PURE__*/_interopDefault(fs$1);
 var path__default = /*#__PURE__*/_interopDefault(path);
 
 // node_modules/tsup/assets/cjs_shims.js
@@ -293,13 +314,13 @@ var LoggerManager = new _LoggerManager();
 var _Logger = class __Logger {
   tag;
   disable;
-  constructor(config) {
-    const { tag = "default", disable = false } = config ?? {};
+  constructor(config2) {
+    const { tag = "default", disable = false } = config2 ?? {};
     this.tag = tag;
     this.disable = disable;
   }
-  create(config) {
-    return new __Logger(config);
+  create(config2) {
+    return new __Logger(config2);
   }
   log(...args) {
     if (!this.disable) {
@@ -474,9 +495,9 @@ var BaseSpeaker = class {
   ttsCommand;
   wakeUpCommand;
   playingCommand;
-  constructor(config) {
-    this.config = config;
-    this.config.timeout = config.timeout ?? 5e3;
+  constructor(config2) {
+    this.config = config2;
+    this.config.timeout = config2.timeout ?? 5e3;
     const {
       debug = false,
       streamResponse = true,
@@ -487,7 +508,7 @@ var BaseSpeaker = class {
       ttsCommand = [5, 1],
       wakeUpCommand = [5, 3],
       audioBeep = process.env.AUDIO_BEEP
-    } = config;
+    } = config2;
     this.debug = debug;
     this.streamResponse = streamResponse;
     this.audioBeep = audioBeep;
@@ -497,8 +518,8 @@ var BaseSpeaker = class {
     this.ttsCommand = ttsCommand;
     this.wakeUpCommand = wakeUpCommand;
     this.playingCommand = playingCommand;
-    if (config.debug) {
-      this.logger.debug("Speaker config:", config);
+    if (config2.debug) {
+      this.logger.debug("Speaker config:", config2);
     }
   }
   async initMiServices() {
@@ -742,15 +763,15 @@ var Speaker = class extends BaseSpeaker {
   heartbeat;
   exitKeepAliveAfter;
   currentQueryMsg;
-  constructor(config) {
-    super(config);
+  constructor(config2) {
+    super(config2);
     const {
       heartbeat = 1e3,
       exitKeepAliveAfter = 30,
       audioSilent = process.env.AUDIO_SILENT
-    } = config;
+    } = config2;
     this.audioSilent = audioSilent;
-    this._commands = config.commands ?? [];
+    this._commands = config2.commands ?? [];
     this.heartbeat = clamp(heartbeat, 500, Infinity);
     this.exitKeepAliveAfter = exitKeepAliveAfter;
   }
@@ -973,8 +994,8 @@ var AISpeaker = class extends Speaker {
   onAIError;
   audioActive;
   audioError;
-  constructor(config) {
-    super(config);
+  constructor(config2) {
+    super(config2);
     const {
       askAI,
       name = "\u50BB\u599E",
@@ -989,7 +1010,7 @@ var AISpeaker = class extends Speaker {
       onAIError = ["\u554A\u54E6\uFF0C\u51FA\u9519\u4E86\uFF0C\u8BF7\u7A0D\u540E\u518D\u8BD5\u5427\uFF01"],
       audioActive = process.env.AUDIO_ACTIVE,
       audioError = process.env.AUDIO_ERROR
-    } = config;
+    } = config2;
     this.askAI = askAI;
     this.name = name;
     this.callAIKeywords = callAIKeywords;
@@ -1144,9 +1165,11 @@ var getDefaultSwitchSpeakerPrefix = () => {
   };
   return generateSentences(words);
 };
-
-// src/utils/env.ts
-var kEnvs = process.env;
+var fileContents = fs.readFileSync("./data.yml", "utf8");
+var config = yaml__namespace.load(fileContents);
+console.log(1111);
+console.log(config);
+var kEnvs = config;
 var kProxyAgent = new proxyAgent.ProxyAgent();
 
 // src/services/openai.ts
@@ -1160,15 +1183,14 @@ var OpenAIClient = class {
     this.deployment = kEnvs.AZURE_OPENAI_DEPLOYMENT;
     console.log(11111);
     console.log(this.deployment);
-    console.log(kEnvs.AZURE_OPENAI_API_KEY);
     console.log(!this._client);
-    console.log(process.env);
-    console.log(process.env.OPENAI_API_KEY);
+    console.log(kEnvs);
+    console.log(kEnvs.OPENAI_API_KEY);
     if (!this._client) {
       this._client = kEnvs.AZURE_OPENAI_API_KEY ? new OpenAI.AzureOpenAI({
         httpAgent: kProxyAgent,
         deployment: this.deployment
-      }) : new OpenAI__default.default({ apiKey: process.env.OPENAI_API_KEY, httpAgent: kProxyAgent });
+      }) : new OpenAI__default.default({ apiKey: kEnvs.OPENAI_API_KEY, httpAgent: kProxyAgent });
     }
   }
   _abortCallbacks = {
@@ -1638,7 +1660,7 @@ var _BotConfig = class {
     }
     return { bot, master, room };
   }
-  async update(config) {
+  async update(config2) {
     var _a, _b;
     let currentConfig = await this.get();
     if (!currentConfig) {
@@ -1649,7 +1671,7 @@ var _BotConfig = class {
       const _key = key;
       currentConfig[_key] = {
         ...currentConfig[_key],
-        ...removeEmpty(config[_key]),
+        ...removeEmpty(config2[_key]),
         updatedAt: void 0
         // reset update date
       };
@@ -1657,10 +1679,10 @@ var _BotConfig = class {
     let { bot, master, room } = currentConfig;
     const newDefaultRoomName = `${master.name}\u548C${bot.name}\u7684\u79C1\u804A`;
     if (room.name.endsWith("\u7684\u79C1\u804A")) {
-      room.name = ((_a = config.room) == null ? void 0 : _a.name) ?? newDefaultRoomName;
+      room.name = ((_a = config2.room) == null ? void 0 : _a.name) ?? newDefaultRoomName;
     }
     if (room.description.endsWith("\u7684\u79C1\u804A")) {
-      room.description = ((_b = config.room) == null ? void 0 : _b.description) ?? newDefaultRoomName;
+      room.description = ((_b = config2.room) == null ? void 0 : _b.description) ?? newDefaultRoomName;
     }
     bot = await UserCRUD.addOrUpdate(bot) ?? oldConfig.bot;
     master = await UserCRUD.addOrUpdate(master) ?? oldConfig.master;
@@ -2127,25 +2149,25 @@ var MemoryManager = class {
 // src/services/bot/conversation.ts
 var ConversationManager = class {
   config;
-  constructor(config) {
-    this.config = config;
+  constructor(config2) {
+    this.config = config2;
   }
   async init() {
     return this.get();
   }
   async get() {
-    const config = await this.update();
-    if (!config) {
+    const config2 = await this.update();
+    if (!config2) {
       return {};
     }
     return {
-      ...config,
+      ...config2,
       // 记忆存储在公共 room 上
-      memory: new MemoryManager(config.room)
+      memory: new MemoryManager(config2.room)
     };
   }
-  async update(config) {
-    return BotConfig.update(config ?? this.config);
+  async update(config2) {
+    return BotConfig.update(config2 ?? this.config);
   }
   async getMessages(options) {
     const { room } = await this.get();
@@ -2238,21 +2260,21 @@ var MyBot = class _MyBot {
   speaker;
   manager;
   systemTemplate;
-  constructor(config) {
-    this.speaker = config.speaker;
-    this.systemTemplate = config.systemTemplate;
-    this.manager = new ConversationManager(config);
+  constructor(config2) {
+    this.speaker = config2.speaker;
+    this.systemTemplate = config2.systemTemplate;
+    this.manager = new ConversationManager(config2);
     this.speaker.addCommand({
       match: (msg) => /.*你是(?<name>[^你]*)你(?<profile>.*)/.exec(msg.text) != null,
       run: async (msg) => {
         const res = /.*你是(?<name>[^你]*)你(?<profile>.*)/.exec(msg.text);
         const name = res[1];
         const profile = res[2];
-        const config2 = await this.manager.update({
+        const config3 = await this.manager.update({
           bot: { name, profile }
         });
-        if (config2) {
-          this.speaker.name = config2 == null ? void 0 : config2.bot.name;
+        if (config3) {
+          this.speaker.name = config3 == null ? void 0 : config3.bot.name;
           await this.speaker.response({
             text: `\u4F60\u597D\uFF0C\u6211\u662F${name}\uFF0C\u5F88\u9AD8\u5174\u8BA4\u8BC6\u4F60\uFF01`,
             keepAlive: this.speaker.keepAlive
@@ -2271,11 +2293,11 @@ var MyBot = class _MyBot {
         const res = /.*我是(?<name>[^我]*)我(?<profile>.*)/.exec(msg.text);
         const name = res[1];
         const profile = res[2];
-        const config2 = await this.manager.update({
+        const config3 = await this.manager.update({
           bot: { name, profile }
         });
-        if (config2) {
-          this.speaker.name = config2 == null ? void 0 : config2.bot.name;
+        if (config3) {
+          this.speaker.name = config3 == null ? void 0 : config3.bot.name;
           await this.speaker.response({
             text: `\u597D\u7684\uFF0C\u6211\u8BB0\u4F4F\u4E86\uFF01`,
             keepAlive: this.speaker.keepAlive
@@ -2386,18 +2408,18 @@ var MyBot = class _MyBot {
 var MiGPT = class _MiGPT {
   static instance;
   static logger = Logger.create({ tag: "MiGPT" });
-  static create(config) {
+  static create(config2) {
     var _a, _b;
     try {
       console.log("\u5F00\u59CB\u521B\u5EFA MiGPT \u5B9E\u4F8B...");
-      if (!((_a = config == null ? void 0 : config.speaker) == null ? void 0 : _a.userId) || !((_b = config == null ? void 0 : config.speaker) == null ? void 0 : _b.password)) {
+      if (!((_a = config2 == null ? void 0 : config2.speaker) == null ? void 0 : _a.userId) || !((_b = config2 == null ? void 0 : config2.speaker) == null ? void 0 : _b.password)) {
         throw new Error("\u7F3A\u5C11\u5FC5\u8981\u7684\u914D\u7F6E: userId \u6216 password");
       }
       if (_MiGPT.instance) {
         console.log("\u6CE8\u610F\uFF1A\u6B63\u5728\u91CD\u7528\u73B0\u6709\u5B9E\u4F8B");
         return _MiGPT.instance;
       }
-      const instance = new _MiGPT({ ...config, fromCreate: true });
+      const instance = new _MiGPT({ ...config2, fromCreate: true });
       if (!instance.speaker) {
         throw new Error("Speaker \u521D\u59CB\u5316\u5931\u8D25");
       }
@@ -2436,13 +2458,13 @@ var MiGPT = class _MiGPT {
   ai;
   speaker;
   config;
-  constructor(config) {
+  constructor(config2) {
     _MiGPT.logger.assert(
-      config.fromCreate,
+      config2.fromCreate,
       "\u8BF7\u4F7F\u7528 MiGPT.create() \u83B7\u53D6\u5BA2\u6237\u7AEF\u5B9E\u4F8B\uFF01"
     );
-    this.config = config;
-    const { speaker, ...myBotConfig } = config;
+    this.config = config2;
+    const { speaker, ...myBotConfig } = config2;
     this.speaker = new AISpeaker(speaker);
     this.ai = new MyBot({
       ...myBotConfig,
