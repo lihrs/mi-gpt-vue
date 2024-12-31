@@ -798,6 +798,7 @@ var Speaker = class extends BaseSpeaker {
       if (nextMsg) {
         this.responding = false;
         this.logger.log("\u{1F525} " + nextMsg.text);
+        await this.MiNA.pause();
         await this.onMessage(nextMsg);
       }
       await sleep(this.heartbeat);

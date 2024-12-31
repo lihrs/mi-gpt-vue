@@ -93,6 +93,8 @@ export class Speaker extends BaseSpeaker {
       if (nextMsg) {
         this.responding = false;
         this.logger.log("🔥 " + nextMsg.text);
+        // 关闭小爱的回复
+        await this.MiNA!.pause();
         await this.onMessage(nextMsg);
       }
       await sleep(this.heartbeat);
