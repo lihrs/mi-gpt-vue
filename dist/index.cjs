@@ -1146,6 +1146,8 @@ var getDefaultSwitchSpeakerPrefix = () => {
 };
 
 // src/utils/env.ts
+console.log(333333);
+console.log(process.env);
 var kEnvs = process.env;
 var kProxyAgent = new proxyAgent.ProxyAgent();
 
