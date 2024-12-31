@@ -1167,8 +1167,6 @@ var getDefaultSwitchSpeakerPrefix = () => {
 };
 var fileContents = fs.readFileSync("./env.yml", "utf8");
 var config = yaml__namespace.load(fileContents);
-console.log(1111);
-console.log(config);
 var kEnvs = config;
 var kProxyAgent = new proxyAgent.ProxyAgent();
 
@@ -1186,11 +1184,12 @@ var OpenAIClient = class {
     console.log(!this._client);
     console.log(kEnvs);
     console.log(kEnvs.OPENAI_API_KEY);
+    console.log(kEnvs.AZURE_OPENAI_API_KEY);
     if (!this._client) {
       this._client = kEnvs.AZURE_OPENAI_API_KEY ? new OpenAI.AzureOpenAI({
         httpAgent: kProxyAgent,
         deployment: this.deployment
-      }) : new OpenAI__default.default({ apiKey: kEnvs.OPENAI_API_KEY, httpAgent: kProxyAgent });
+      }) : new OpenAI__default.default({ httpAgent: kProxyAgent });
     }
   }
   _abortCallbacks = {

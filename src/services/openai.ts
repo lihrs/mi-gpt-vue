@@ -36,13 +36,14 @@ class OpenAIClient {
     console.log(!this._client)
     console.log(kEnvs)
     console.log(kEnvs.OPENAI_API_KEY)
+    console.log(kEnvs.AZURE_OPENAI_API_KEY)
     if (!this._client) {
       this._client = kEnvs.AZURE_OPENAI_API_KEY
         ? new AzureOpenAI({
             httpAgent: kProxyAgent,
             deployment: this.deployment,
           })
-        : new OpenAI({ apiKey: kEnvs.OPENAI_API_KEY, httpAgent: kProxyAgent });
+        : new OpenAI({ httpAgent: kProxyAgent });
     }
   }
 
