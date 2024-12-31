@@ -236,11 +236,11 @@ app.post('/api/config', async (req, res) => {
     //   config[key]?.endpoint
     // );
 
-    // 构建 .env 内容
+    // 构建 .enn 内容
     const envLines = [];
 
     console.log(2222)
-    // 如果有选中的 AI 服务配置，添加到 .env 文件
+    // 如果有选中的 AI 服务配置，添加到 .enn 文件
     if (config['selectedAIService']) {
       const serviceConfig = config[config['selectedAIService']];
       console.log(serviceConfig)
@@ -251,7 +251,7 @@ app.post('/api/config', async (req, res) => {
       );
     }
 
-    // 如果使用自定义 TTS，添加 TTS 配置到 .env 文件
+    // 如果使用自定义 TTS，添加 TTS 配置到 .enn 文件
     if (config.speaker?.tts === 'custom' && config.tts?.baseUrl) {
       envLines.push(`TTS_BASE_URL=${config.tts.baseUrl}`);
     }
@@ -261,8 +261,8 @@ app.post('/api/config', async (req, res) => {
     // 确保有内容才写入文件
     if (envLines.length > 0) {
       const envContent = envLines.join('\n');
-      await fs.promises.writeFile('.env', envContent, 'utf8');
-      console.log('.env 文件已更新');
+      await fs.promises.writeFile('.enn', envContent, 'utf8');
+      console.log('.enn 文件已更新');
     }
 
     // 如果服务正在运行，需要重启才能生效
@@ -643,10 +643,10 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 读取 .env 文件
+// 读取 .enn 文件
 app.get('/api/config/env', async (req, res) => {
   try {
-    const envPath = path.join(__dirname, '.env');
+    const envPath = path.join(__dirname, '.enn');
 
     // 检查文件是否存在
     if (!fs.existsSync(envPath)) {
@@ -679,7 +679,7 @@ app.get('/api/config/env', async (req, res) => {
       TTS_SWITCH_KEYWORDS: envConfig.TTS_SWITCH_KEYWORDS || ''
     });
   } catch (error) {
-    console.error('读取 .env 文件失败:', error);
+    console.error('读取 .enn 文件失败:', error);
     // 发生错误时返回空配置而不是错误状态
     res.json({
       OPENAI_API_KEY: '',
@@ -691,7 +691,7 @@ app.get('/api/config/env', async (req, res) => {
   }
 });
 
-// 更新 .env 文件
+// 更新 .enn 文件
 app.post('/api/config/env', async (req, res) => {
   try {
     const { OPENAI_API_KEY, OPENAI_MODEL, OPENAI_BASE_URL, TTS_BASE_URL, TTS_SWITCH_KEYWORDS } = req.body;
@@ -710,18 +710,18 @@ OPENAI_BASE_URL=${OPENAI_BASE_URL}
 TTS_BASE_URL=${TTS_BASE_URL || ''}
 TTS_SWITCH_KEYWORDS=${TTS_SWITCH_KEYWORDS || ''}`;
 
-    const envPath = path.join(__dirname, '.env');
+    const envPath = path.join(__dirname, '.enn');
     await fs.promises.writeFile(envPath, envContent, 'utf8');
 
     res.json({
       success: true,
-      message: '.env 文件已更新'
+      message: '.enn 文件已更新'
     });
   } catch (error) {
-    console.error('更新 .env 文件失败:', error);
+    console.error('更新 .enn 文件失败:', error);
     res.status(500).json({
       success: false,
-      error: '更新 .env 文件失败: ' + error.message
+      error: '更新 .enn 文件失败: ' + error.message
     });
   }
 });

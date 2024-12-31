@@ -1,3 +1,6 @@
+import dotenv from 'dotenv'
+dotenv.config('./enn');
+
 export const kEnvs: Partial<{
   MI_USER: string;
   MI_PASS: string;
