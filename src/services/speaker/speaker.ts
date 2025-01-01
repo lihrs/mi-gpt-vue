@@ -85,6 +85,8 @@ export class Speaker extends BaseSpeaker {
     const retry = fastRetry(this, "消息列表");
 
     while (this.status === "running") {
+      // 关闭小爱的回复
+      await this.MiNA!.pause();
       const nextMsg = await this.fetchNextMessage();
       const isOk = retry.onResponse(this._lastConversation);
       if (isOk === "break") {
@@ -94,8 +96,6 @@ export class Speaker extends BaseSpeaker {
       if (nextMsg) {
         this.responding = false;
         this.logger.log("🔥 " + nextMsg.text);
-        // 关闭小爱的回复
-        await this.MiNA!.play({ url: this.audioBeep });
         await this.onMessage(nextMsg);
       }
       await sleep(this.heartbeat);
@@ -132,9 +132,10 @@ export class Speaker extends BaseSpeaker {
   async onMessage(msg: QueryMessage) {
     const { noNewMsg } = this.checkIfHasNewMsg(msg);
     for (const command of this.commands) {
+      // 关闭小爱的回复
+      await this.MiNA!.pause();
+      await this.MiNA!.pause();
       if (command.match(msg)) {
-        // 关闭小爱的回复
-        await this.MiNA!.pause();
         // 执行命令
         const answer = await command.run(msg);
         // 回复用户

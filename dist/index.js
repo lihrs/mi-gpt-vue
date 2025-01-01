@@ -645,7 +645,7 @@ var BaseSpeaker = class {
           if (sentence.trim()) {
             console.log("Processing sentence:", sentence);
             await this.MiIOT.doAction(...this.ttsCommand, sentence.trim());
-            const estimatedTime = sentence.trim().length * 245;
+            const estimatedTime = sentence.length * 220 + 10;
             await sleep(estimatedTime);
           }
         }
@@ -770,6 +770,7 @@ var Speaker = class extends BaseSpeaker {
     this.activeKeepAliveMode();
     const retry = fastRetry(this, "\u6D88\u606F\u5217\u8868");
     while (this.status === "running") {
+      await this.MiNA.pause();
       const nextMsg = await this.fetchNextMessage();
       const isOk = retry.onResponse(this._lastConversation);
       if (isOk === "break") {
@@ -778,7 +779,6 @@ var Speaker = class extends BaseSpeaker {
       if (nextMsg) {
         this.responding = false;
         this.logger.log("\u{1F525} " + nextMsg.text);
-        await this.MiNA.play({ url: this.audioBeep });
         await this.onMessage(nextMsg);
       }
       await sleep(this.heartbeat);
@@ -810,8 +810,9 @@ var Speaker = class extends BaseSpeaker {
   async onMessage(msg) {
     const { noNewMsg } = this.checkIfHasNewMsg(msg);
     for (const command of this.commands) {
+      await this.MiNA.pause();
+      await this.MiNA.pause();
       if (command.match(msg)) {
-        await this.MiNA.pause();
         const answer = await command.run(msg);
         if (answer) {
           if (noNewMsg() && this.status === "running") {

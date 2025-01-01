@@ -5,12 +5,12 @@ import {
   getMiIOT,
   getMiNA,
 } from "mi-service-lite";
-import { clamp, sleep } from "../../utils/base";
-import { jsonEncode } from "../../utils/parse";
-import { Logger } from "../../utils/log";
-import { StreamResponse } from "./stream";
-import { kAreYouOK } from "../../utils/string";
-import { fastRetry } from "../../utils/retry";
+import {clamp, sleep} from "../../utils/base";
+import {jsonEncode} from "../../utils/parse";
+import {Logger} from "../../utils/log";
+import {StreamResponse} from "./stream";
+import {kAreYouOK} from "../../utils/string";
+import {fastRetry} from "../../utils/retry";
 import {kEnvs} from "../../utils/env";
 
 export type TTSProvider = "xiaoai" | "custom";
@@ -91,7 +91,7 @@ export class BaseSpeaker {
   MiNA?: MiNA;
   MiIOT?: MiIOT;
   config: MiServiceConfig;
-  logger = Logger.create({ tag: "Speaker" });
+  logger = Logger.create({tag: "Speaker"});
   debug = false;
   streamResponse = true;
   checkInterval: number;
@@ -139,7 +139,7 @@ export class BaseSpeaker {
     if (this.debug) {
       this.logger.debug(
         "配置参数：",
-        jsonEncode(this.config, { prettier: true })
+        jsonEncode(this.config, {prettier: true})
       );
     }
   }
@@ -164,14 +164,16 @@ export class BaseSpeaker {
 
   audioBeep?: string;
   responding = false;
+
   /**
    * 检测是否有新消息
    *
    * 有新消息产生时，旧的回复会终止
    */
   checkIfHasNewMsg() {
-    return { hasNewMsg: () => false, noNewMsg: () => true };
+    return {hasNewMsg: () => false, noNewMsg: () => true};
   }
+
   async response(options: {
     tts?: TTSProvider;
     text?: string;
@@ -215,7 +217,7 @@ export class BaseSpeaker {
     if (stream) {
       let replyText = "";
       while (true) {
-        let { nextSentence, noMore } = stream.getNextResponse();
+        let {nextSentence, noMore} = stream.getNextResponse();
         if (!this.streamResponse) {
           nextSentence = await stream.getFinalResult();
           noMore = true;
@@ -227,7 +229,7 @@ export class BaseSpeaker {
               if (this.debug) {
                 this.logger.debug("开始播放提示音");
               }
-              await this.MiNA!.play({ url: this.audioBeep });
+              await this.MiNA!.play({url: this.audioBeep});
             }
             // 在播放 TTS 语音之前，先取消小爱音箱的唤醒状态，防止将 TTS 语音识别成用户指令
             if (ttsNotXiaoai) {
@@ -254,7 +256,7 @@ export class BaseSpeaker {
               if (this.debug) {
                 this.logger.debug("结束播放提示音");
               }
-              await this.MiNA!.play({ url: this.audioBeep });
+              await this.MiNA!.play({url: this.audioBeep});
             }
           }
           // 保持唤醒状态
@@ -308,7 +310,7 @@ export class BaseSpeaker {
         if (this.debug) {
           this.logger.debug("开始播放提示音（inner）");
         }
-        await this.MiNA!.play({ url: this.audioBeep });
+        await this.MiNA!.play({url: this.audioBeep});
       }
       // 在播放 TTS 语音之前，先取消小爱音箱的唤醒状态，防止将 TTS 语音识别成用户指令
       if (ttsNotXiaoai) {
@@ -321,7 +323,7 @@ export class BaseSpeaker {
             console.log("Processing sentence:", sentence);
             await this.MiIOT!.doAction(...this.ttsCommand, sentence.trim());
             // 根据句子长度动态调整等待时间
-            const estimatedTime = sentence.trim().length * 245; // 每个字符估算 100 毫秒
+            const estimatedTime = sentence.length * 225 + 10; // 每个字符估算 100 毫秒
             await sleep(estimatedTime);
           }
         }
@@ -339,21 +341,21 @@ export class BaseSpeaker {
       const retry = fastRetry(this, "设备状态");
       while (true) {
         // 检测设备播放状态
-        let playing: any = { status: "idle" };
+        let playing: any = {status: "idle"};
         let res = this.playingCommand
           ? await this.MiIOT!.getProperty(
-              this.playingCommand[0],
-              this.playingCommand[1]
-            )
+            this.playingCommand[0],
+            this.playingCommand[1]
+          )
           : await this.MiNA!.getStatus();
         if (this.debug) {
-          this.logger.debug(jsonEncode({ playState: res ?? "undefined" }));
+          this.logger.debug(jsonEncode({playState: res ?? "undefined"}));
         }
         if (this.playingCommand && res === this.playingCommand[2]) {
-          playing = { status: "playing" };
+          playing = {status: "playing"};
         }
         if (!this.playingCommand) {
-          playing = { ...playing, ...res };
+          playing = {...playing, ...res};
         }
         if (
           hasNewMsg() ||
@@ -377,7 +379,7 @@ export class BaseSpeaker {
         if (this.debug) {
           this.logger.debug("结束播放提示音inner）");
         }
-        await this.MiNA!.play({ url: this.audioBeep });
+        await this.MiNA!.play({url: this.audioBeep});
       }
       // 保持唤醒状态
       if (keepAlive) {
@@ -389,7 +391,7 @@ export class BaseSpeaker {
     let res;
     if (audio) {
       // 优先播放音频回复
-      res = await play({ url: audio });
+      res = await play({url: audio});
     } else if (ttsText) {
       // 文字回复
       switch (tts) {
@@ -398,11 +400,11 @@ export class BaseSpeaker {
           const url = `${kEnvs.TTS_BASE_URL}/tts.mp3?speaker=${
             speaker || ""
           }&text=${_text}`;
-          res = await play({ url });
+          res = await play({url});
           break;
         case "xiaoai":
         default:
-          res = await play({ tts: ttsText });
+          res = await play({tts: ttsText});
           break;
       }
     }
@@ -411,6 +413,7 @@ export class BaseSpeaker {
 
   private _speakers?: Speaker[];
   private _currentSpeaker: string | undefined;
+
   async switchSpeaker(speaker: string) {
     if (!this._speakers && kEnvs.TTS_BASE_URL) {
       const resp = await fetch(`${kEnvs.TTS_BASE_URL}/speakers`).catch(
