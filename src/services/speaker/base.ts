@@ -314,7 +314,16 @@ export class BaseSpeaker {
         await this.unWakeUp();
       }
       if (args?.tts) {
-        await this.MiIOT!.doAction(...this.ttsCommand, args.tts);
+        const sentences = args.tts.split(/(?<=[。！？\n])/); // 使用正则表达式按句号、感叹号、问号或换行符拆分
+        for (const sentence of sentences) {
+          if (sentence.trim()) { // 确保不处理空字符串
+            console.log("Processing sentence:", sentence);
+            await this.MiIOT!.doAction(...this.ttsCommand, sentence.trim());
+            // 根据句子长度动态调整等待时间
+            const estimatedTime = sentence.trim().length * 245; // 每个字符估算 100 毫秒
+            await sleep(estimatedTime);
+          }
+        }
       } else {
         await this.MiNA!.play(args);
       }

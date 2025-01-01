@@ -668,7 +668,15 @@ var BaseSpeaker = class {
         await this.unWakeUp();
       }
       if (args == null ? void 0 : args.tts) {
-        await this.MiIOT.doAction(...this.ttsCommand, args.tts);
+        const sentences = args.tts.split(/(?<=[。！？\n])/);
+        for (const sentence of sentences) {
+          if (sentence.trim()) {
+            console.log("Processing sentence:", sentence);
+            await this.MiIOT.doAction(...this.ttsCommand, sentence.trim());
+            const estimatedTime = sentence.trim().length * 242;
+            await sleep(estimatedTime);
+          }
+        }
       } else {
         await this.MiNA.play(args);
       }
@@ -798,7 +806,7 @@ var Speaker = class extends BaseSpeaker {
       if (nextMsg) {
         this.responding = false;
         this.logger.log("\u{1F525} " + nextMsg.text);
-        await this.MiNA.pause();
+        await this.MiNA.play({ url: this.audioBeep });
         await this.onMessage(nextMsg);
       }
       await sleep(this.heartbeat);

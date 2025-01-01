@@ -14,4 +14,8 @@ export const kEnvs: Partial<{
   OPENAI_BASE_URL: string;
   AZURE_OPENAI_API_KEY: string;
   AZURE_OPENAI_DEPLOYMENT: string;
+  AUDIO_SILENT:string;
+  AUDIO_BEEP:string;
+  AUDIO_ACTIVE:string;
+  AUDIO_ERROR:string;
 }> = config as any;

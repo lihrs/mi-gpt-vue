@@ -94,7 +94,7 @@ export class Speaker extends BaseSpeaker {
         this.responding = false;
         this.logger.log("🔥 " + nextMsg.text);
         // 关闭小爱的回复
-        await this.MiNA!.pause();
+        await this.MiNA!.play({ url: this.audioBeep });
         await this.onMessage(nextMsg);
       }
       await sleep(this.heartbeat);
