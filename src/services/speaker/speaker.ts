@@ -85,8 +85,6 @@ export class Speaker extends BaseSpeaker {
     const retry = fastRetry(this, "消息列表");
 
     while (this.status === "running") {
-      // 关闭小爱的回复
-      await this.MiNA!.pause();
       const nextMsg = await this.fetchNextMessage();
       const isOk = retry.onResponse(this._lastConversation);
       if (isOk === "break") {

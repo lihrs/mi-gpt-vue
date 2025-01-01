@@ -645,7 +645,7 @@ var BaseSpeaker = class {
           if (sentence.trim()) {
             console.log("Processing sentence:", sentence);
             await this.MiIOT.doAction(...this.ttsCommand, sentence.trim());
-            const estimatedTime = sentence.length * 220 + 10;
+            const estimatedTime = sentence.length * 225 + 10;
             await sleep(estimatedTime);
           }
         }
@@ -770,7 +770,6 @@ var Speaker = class extends BaseSpeaker {
     this.activeKeepAliveMode();
     const retry = fastRetry(this, "\u6D88\u606F\u5217\u8868");
     while (this.status === "running") {
-      await this.MiNA.pause();
       const nextMsg = await this.fetchNextMessage();
       const isOk = retry.onResponse(this._lastConversation);
       if (isOk === "break") {
