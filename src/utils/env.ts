@@ -18,4 +18,5 @@ export const kEnvs: Partial<{
   AUDIO_BEEP:string;
   AUDIO_ACTIVE:string;
   AUDIO_ERROR:string;
+  TTS_BASE_URL:string;
 }> = config as any;

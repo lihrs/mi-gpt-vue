@@ -1,6 +1,7 @@
 import { clamp, firstOf, lastOf, sleep } from "../../utils/base";
 import { fastRetry } from "../../utils/retry";
 import { kAreYouOK } from "../../utils/string";
+import { kEnvs } from "../../utils/env";
 import { BaseSpeaker, BaseSpeakerConfig } from "./base";
 import { StreamResponse } from "./stream";
 
@@ -56,7 +57,7 @@ export class Speaker extends BaseSpeaker {
     const {
       heartbeat = 1000,
       exitKeepAliveAfter = 30,
-      audioSilent = process.env.AUDIO_SILENT,
+      audioSilent = kEnvs.AUDIO_SILENT,
     } = config;
     this.audioSilent = audioSilent;
     this._commands = config.commands ?? [];

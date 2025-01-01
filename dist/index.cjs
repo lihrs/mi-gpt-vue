@@ -1,10 +1,10 @@
 'use strict';
 
+var fs = require('fs');
+var yaml = require('js-yaml');
 var miServiceLite = require('mi-service-lite');
 var crypto = require('crypto');
 var OpenAI = require('openai');
-var fs = require('fs');
-var yaml = require('js-yaml');
 var proxyAgent = require('proxy-agent');
 var client = require('@prisma/client');
 var fs$1 = require('fs-extra');
@@ -32,8 +32,8 @@ function _interopNamespace(e) {
   return Object.freeze(n);
 }
 
-var OpenAI__default = /*#__PURE__*/_interopDefault(OpenAI);
 var yaml__namespace = /*#__PURE__*/_interopNamespace(yaml);
+var OpenAI__default = /*#__PURE__*/_interopDefault(OpenAI);
 var fs__default = /*#__PURE__*/_interopDefault(fs$1);
 var path__default = /*#__PURE__*/_interopDefault(path);
 
@@ -247,6 +247,9 @@ function removeEmojis(text) {
   const emojiRegex = /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu;
   return text.replace(emojiRegex, "");
 }
+var fileContents = fs.readFileSync("./env.yml", "utf8");
+var config = yaml__namespace.load(fileContents);
+var kEnvs = config;
 
 // src/utils/log.ts
 var _LoggerManager = class {
@@ -507,7 +510,7 @@ var BaseSpeaker = class {
       playingCommand,
       ttsCommand = [5, 1],
       wakeUpCommand = [5, 3],
-      audioBeep = process.env.AUDIO_BEEP
+      audioBeep = kEnvs.AUDIO_BEEP
     } = config2;
     this.debug = debug;
     this.streamResponse = streamResponse;
@@ -571,7 +574,7 @@ var BaseSpeaker = class {
     if (!text && !stream && !audio) {
       return;
     }
-    const customTTS = process.env.TTS_BASE_URL;
+    const customTTS = kEnvs.TTS_BASE_URL;
     if (!customTTS) {
       tts = "xiaoai";
     }
@@ -673,7 +676,7 @@ var BaseSpeaker = class {
           if (sentence.trim()) {
             console.log("Processing sentence:", sentence);
             await this.MiIOT.doAction(...this.ttsCommand, sentence.trim());
-            const estimatedTime = sentence.trim().length * 242;
+            const estimatedTime = sentence.trim().length * 245;
             await sleep(estimatedTime);
           }
         }
@@ -730,7 +733,7 @@ var BaseSpeaker = class {
       switch (tts) {
         case "custom":
           const _text = encodeURIComponent(ttsText);
-          const url = `${process.env.TTS_BASE_URL}/tts.mp3?speaker=${speaker || ""}&text=${_text}`;
+          const url = `${kEnvs.TTS_BASE_URL}/tts.mp3?speaker=${speaker || ""}&text=${_text}`;
           res = await play({ url });
           break;
         case "xiaoai":
@@ -744,8 +747,8 @@ var BaseSpeaker = class {
   _speakers;
   _currentSpeaker;
   async switchSpeaker(speaker) {
-    if (!this._speakers && process.env.TTS_BASE_URL) {
-      const resp = await fetch(`${process.env.TTS_BASE_URL}/speakers`).catch(
+    if (!this._speakers && kEnvs.TTS_BASE_URL) {
+      const resp = await fetch(`${kEnvs.TTS_BASE_URL}/speakers`).catch(
         () => null
       );
       const res = await (resp == null ? void 0 : resp.json().catch(() => null));
@@ -776,7 +779,7 @@ var Speaker = class extends BaseSpeaker {
     const {
       heartbeat = 1e3,
       exitKeepAliveAfter = 30,
-      audioSilent = process.env.AUDIO_SILENT
+      audioSilent = kEnvs.AUDIO_SILENT
     } = config2;
     this.audioSilent = audioSilent;
     this._commands = config2.commands ?? [];
@@ -1017,8 +1020,8 @@ var AISpeaker = class extends Speaker {
       onAIAsking = ["\u8BA9\u6211\u5148\u60F3\u60F3", "\u8BF7\u7A0D\u7B49"],
       onAIReplied = ["\u6211\u8BF4\u5B8C\u4E86", "\u8FD8\u6709\u5176\u4ED6\u95EE\u9898\u5417"],
       onAIError = ["\u554A\u54E6\uFF0C\u51FA\u9519\u4E86\uFF0C\u8BF7\u7A0D\u540E\u518D\u8BD5\u5427\uFF01"],
-      audioActive = process.env.AUDIO_ACTIVE,
-      audioError = process.env.AUDIO_ERROR
+      audioActive = kEnvs.AUDIO_ACTIVE,
+      audioError = kEnvs.AUDIO_ERROR
     } = config2;
     this.askAI = askAI;
     this.name = name;
@@ -1174,9 +1177,6 @@ var getDefaultSwitchSpeakerPrefix = () => {
   };
   return generateSentences(words);
 };
-var fileContents = fs.readFileSync("./env.yml", "utf8");
-var config = yaml__namespace.load(fileContents);
-var kEnvs = config;
 var kProxyAgent = new proxyAgent.ProxyAgent();
 
 // src/services/openai.ts
