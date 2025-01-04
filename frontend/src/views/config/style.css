@@ -222,7 +222,7 @@ body {
 
   .control-buttons {
     width: auto;
-    margin-top: 0;
+    margin-top: 0!important;
   }
 
   .config-tabs {
@@ -281,7 +281,7 @@ body {
     font-size: 12px;
   }
   .config-form {
-    padding: 0 30px;
+    padding: 0 15px;
   }
 
   .el-form-item {
@@ -468,7 +468,6 @@ body {
 .el-button {
   display: block;
   width: 100%;
-  margin-bottom: 10px;
 }
 
 .el-button + .el-button {

@@ -82,12 +82,12 @@
                     readonly
                     size="small"
                   >
-                    <el-button
+<!--                    <el-button
                       slot="append"
                       icon="el-icon-document-copy"
                       @click="copyCommand(step.command)"
                       >复制</el-button
-                    >
+                    >-->
                   </el-input>
                 </div>
                 <el-alert class="mt-4" type="info" :closable="false" show-icon>
@@ -550,18 +550,18 @@ export default {
           content:
             '在"基础配置"中设置智能助手名称、用户信息、小米账号和音箱配置等基本参数。',
         },
+        // {
+        //   title: "2. 配置 AI 服务",
+        //   content:
+        //     '在"AI服务配置"中选择并配置 AI 服务提供商（如 OpenAI、智谱等），填写相关的 API 密钥和接口信息。',
+        // },
         {
-          title: "2. 配置 AI 服务",
-          content:
-            '在"AI服务配置"中选择并配置 AI 服务提供商（如 OpenAI、智谱等），填写相关的 API 密钥和接口信息。',
-        },
-        {
-          title: "3. 启动服务",
+          title: "2. 启动服务",
           content:
             '完成配置后，点击顶部的"启动"按钮运行 MiGPT 服务。服务启动后，状态标签会显示为"运行中"。',
         },
         {
-          title: "4. 开始使用",
+          title: "3. 开始使用",
           content:
             '对着小爱音箱说"小爱同学"，等待回应后说出带有触发词的指令，如"请帮我查询天气"。',
           command: "小爱同学 + 请/你/智能助手 + 问题内容",
