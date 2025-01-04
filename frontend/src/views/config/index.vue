@@ -529,20 +529,10 @@ export default {
           enableTrace: false,
           switchSpeakerKeywords: [],
         },
-        systemTemplate: systemTemplate,
-        openai: { apiKey: "", model: "", endpoint: "" },
-        azure: { apiKey: "", model: "", endpoint: "" },
-        zhipu: { apiKey: "", model: "", endpoint: "" },
-        tongyi: { apiKey: "", model: "", endpoint: "" },
-        doubao: { apiKey: "", model: "", endpoint: "" },
-        custom: { apiKey: "", model: "", endpoint: "" },
-        tts: {
-          baseUrl: "",
-        },
+        systemTemplate: systemTemplate
       },
       configContent: "",
       activeTab: "basic",
-      selectedDeviceModel: "",
       selectedAIService: "",
       aiServices,
       devicePresets,
@@ -587,15 +577,7 @@ export default {
       ttsEngines,
     };
   },
-  computed: {
-    allServices() {
-      return { ...this.aiServices, custom: this.config.custom };
-    },
-  },
   methods: {
-    goToHome() {
-      this.$router.push("/");
-    },
     async startService() {
       try {
         this.isStarting = true;
@@ -671,127 +653,14 @@ export default {
         }
       );
     },
-    copyVariable(variable) {
-      this.$copyText(variable).then(
-        () => {
-          this.$message.success("变量已复制到剪贴板");
-        },
-        () => {
-          this.$message.error("复制变量失败");
-        }
-      );
-    },
-    resetSystemTemplate() {
-      this.config.systemTemplate = systemTemplate;
-    },
-    getPreviewContent() {
-      if (!this.config.systemTemplate) {
-        return "";
-      }
-
-      let content = this.config.systemTemplate;
-
-      // 定义变量映射
-      const variables = {
-        "{{botName}}": this.config.bot.name || "未设置",
-        "{{botProfile}}": this.config.bot.profile || "未设置",
-        "{{masterName}}": this.config.master.name || "未设置",
-        "{{masterProfile}}": this.config.master.profile || "未设置",
-        "{{currentTime}}": new Date().toLocaleTimeString(),
-        "{{currentDate}}": new Date().toLocaleDateString(),
-        "{{currentHour}}": new Date().getHours().toString(),
-        "{{roomName}}": "默认群组",
-        "{{roomIntroduction}}": "这是一个默认群组",
-        "{{messages}}": "暂无历史消息",
-        "{{shortTermMemory}}": "暂无短期记忆",
-        "{{longTermMemory}}": "暂无长期记忆",
-      };
-
-      // 替换所有变量
-      Object.entries(variables).forEach(([key, value]) => {
-        // 使用全局替换
-        const regex = new RegExp(
-          key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
-          "g"
-        );
-        content = content.replace(
-          regex,
-          `<span class="variable-highlight">${value}</span>`
-        );
-      });
-
-      // 转换换行符为 HTML 换行标签
-      content = content.replace(/\n/g, "<br>");
-
-      return content;
-    },
-    handleDeviceModelChange(model) {
-      if (model && this.devicePresets[model]) {
-        const preset = this.devicePresets[model];
-        this.config.speaker.ttsCommand = [...preset.ttsCommand];
-        this.config.speaker.wakeUpCommand = [...preset.wakeUpCommand];
-        this.config.speaker.playingCommand = [...preset.playingCommand];
-        this.selectedDeviceModel = model;
-        this.$set(this.config.speaker, "deviceModel", model);
-      } else if (model) {
-        this.config.speaker.ttsCommand = [0, 0, 0];
-        this.config.speaker.wakeUpCommand = [0, 0, 0];
-        this.config.speaker.playingCommand = [0, 0, 0];
-        this.selectedDeviceModel = model;
-        this.$set(this.config.speaker, "deviceModel", model);
-
-        this.$set(this.devicePresets, model, {
-          label: model,
-          ttsCommand: this.config.speaker.ttsCommand,
-          wakeUpCommand: this.config.speaker.wakeUpCommand,
-          playingCommand: this.config.speaker.playingCommand,
-        });
-      }
-    },
-    handleAIServiceChange(service) {
-      if (service) {
-        if (!this.config[service]) {
-          this.$set(this.config, service, {
-            apiKey: "",
-            model: "",
-            endpoint: "",
-          });
-        }
-        if (this.aiServices[service]) {
-          const serviceConfig = this.aiServices[service];
-          this.config[service].endpoint = serviceConfig.endpoint;
-          if (!this.config[service].model && serviceConfig.models?.length) {
-            this.config[service].model = serviceConfig.models[0].value;
-          }
-        }
-      }
-    },
-    handleEndpointChange(endpoint) {
-      if (
-        endpoint &&
-        this.selectedAIService &&
-        this.aiServices[this.selectedAIService]
-      ) {
-        const serviceConfig = this.aiServices[this.selectedAIService];
-        if (serviceConfig.endpoint !== endpoint) {
-          this.config[this.selectedAIService].model = "";
-        }
-      }
-    },
     async loadConfig() {
       try {
         const response = await fetch("/api/config");
         const data = await response.json();
-        if (data.config) {
-          const configStr = data.config
-            .replace(/export\s+default\s+/, "")
-            .replace(/;$/, "")
-            .trim();
-          const parsedConfig = JSON.parse(configStr);
-
+        if (data.newConfig) {
           // 更新整个配置对象
-          Object.keys(parsedConfig).forEach((key) => {
-            this.$set(this.config, key, parsedConfig[key]);
+          Object.keys(data.newConfig).forEach((key) => {
+            this.$set(this.config, key, data.newConfig[key]);
           });
 
           // 确保 systemTemplate 存在
@@ -799,51 +668,8 @@ export default {
             this.$set(this.config, "systemTemplate", systemTemplate);
           }
 
-          // 确保 tts 配置存在
-          if (!this.config.tts) {
-            this.$set(this.config, "tts", { baseUrl: "" });
-          }
-
           // 同步到 JSON 编辑器
           this.syncConfigToJson();
-
-          // 设置 TTS 引擎
-          if (this.config.speaker.tts === "xiaoai") {
-            this.selectedTTSEngine = "xiaoai";
-          } else if (this.config.speaker.tts === "custom") {
-            // ... 其他 TTS 相关代码 ...
-          }
-
-          // 找到当前使用的 AI 服务
-          // const activeService = Object.entries(this.config).find(
-          //   ([key, value]) =>
-          //     [
-          //       "openai",
-          //       "azure",
-          //       "zhipu",
-          //       "tongyi",
-          //       "doubao",
-          //       "custom",
-          //     ].includes(key) &&
-          //     value.apiKey &&
-          //     value.model &&
-          //     value.endpoint
-          // );
-          //
-          // if (activeService) {
-          //   this.selectedAIService = activeService[0];
-          // }
-
-          if(parsedConfig['selectedAIService']){
-            this.selectedAIService = parsedConfig['selectedAIService'];
-          }
-
-          // 从配置中加载设备型号
-          if (this.config.speaker.deviceModel) {
-            this.selectedDeviceModel = this.config.speaker.deviceModel;
-          } else {
-            // ... 其他设备型号相关代码 ...
-          }
         }
       } catch (error) {
         console.error("加载配置失败:", error);
@@ -866,7 +692,6 @@ export default {
         // 创建配置的副本
         const configToSave = JSON.parse(JSON.stringify(this.config));
 
-        configToSave['selectedAIService'] = this.selectedAIService
         // 处理模板变量替换
         const variables = {
           "{{botName}}": configToSave.bot.name || "未设置",
@@ -925,97 +750,6 @@ export default {
     syncConfigToJson() {
       this.configContent = JSON.stringify(this.config, null, 2);
     },
-    syncFormToJson() {
-      this.$refs.configForm.validate((valid) => {
-        if (valid) {
-          this.syncConfigToJson();
-          this.$message.success("表单同步到JSON成功");
-        } else {
-          this.$message.error("表单验证失败，请检查输入");
-        }
-      });
-    },
-    syncJsonToForm() {
-      try {
-        const jsonConfig = JSON.parse(this.configContent);
-        this.config = jsonConfig;
-        this.$message.success("JSON同步到表单成功");
-      } catch (error) {
-        console.error("JSON解析失败:", error);
-        this.$message.error("JSON解析失败: " + error.message);
-      }
-    },
-    loadExampleConfig() {
-      this.config = {
-        bot: {
-          name: "小智",
-          profile:
-            "小智是一位友好、乐于助人的智能助手。她的性格开朗、热情，对技术有浓厚的兴趣。能够回答各种问题，解答日常生活中的疑惑，并提供有用的建议。",
-        },
-        master: {
-          name: "主人",
-          profile:
-            "主人是一位热爱新技术、喜欢尝试新事物的人。他对智能设备和人工智能浓厚的兴趣，并希望小智能够成为他生活中好帮手。",
-        },
-        speaker: {
-          userId: "1234567890",
-          password: "password123",
-          did: "小爱音箱",
-          ttsCommand: [1, 2, 3, 4, 5],
-          wakeUpCommand: [1, 2, 3, 4, 5],
-          playingCommand: [],
-          callAIKeywords: ["请", "你", "智能助手"],
-          wakeUpKeywords: ["打开", "进入", "激活"],
-          exitKeywords: ["关闭", "退出", "再见"],
-          onEnterAI: ["您好，我是您的智能助手"],
-          onExitAI: ["再见，期待下次为您服务"],
-          onAIAsking: ["让我思考一下"],
-          onAIReplied: ["我的回答是"],
-          onAIError: ["抱歉，我遇到了一些问题"],
-          tts: "xiaoai",
-          streamResponse: false,
-          exitKeepAliveAfter: 10,
-          checkTTSStatusAfter: 3,
-          checkInterval: 1000,
-          timeout: 10000,
-          debug: false,
-          enableTrace: false,
-          switchSpeakerKeywords: ["把声音换成"],
-        },
-        systemTemplate: systemTemplate,
-        openai: {
-          apiKey: "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-          model: "gpt-3.5-turbo",
-          endpoint: "https://api.openai.com/v1/chat/completions",
-        },
-        azure: {
-          apiKey: "",
-          model: "",
-          endpoint: "",
-        },
-        zhipu: {
-          apiKey: "",
-          model: "",
-          endpoint: "",
-        },
-        tongyi: {
-          apiKey: "",
-          model: "",
-          endpoint: "",
-        },
-        doubao: {
-          apiKey: "",
-          model: "",
-          endpoint: "",
-        },
-        custom: {
-          apiKey: "",
-          model: "",
-          endpoint: "",
-        },
-      };
-      this.syncConfigToJson();
-    },
     async checkServiceHealth() {
       try {
         const response = await fetch("/api/service/health");
@@ -1025,68 +759,6 @@ export default {
         console.error("服务健康检查失败:", error);
         this.$message.error("服务健康检查失败: " + error.message);
       }
-    },
-    handleTTSEngineChange(value) {
-      if (value === "add_new") {
-        this.$prompt("请输入引擎名称", "添加自定义引擎", {
-          confirmButtonText: "确定",
-          cancelButtonText: "取消",
-          inputPattern: /^.+$/,
-          inputErrorMessage: "名称不能为空",
-        })
-          .then(({ value: label }) => {
-            const key = `custom_${Date.now()}`;
-            addEngine(key, label, "");
-            this.selectedTTSEngine = key;
-            this.config.speaker.tts = "custom";
-            if (!this.config.tts) {
-              this.$set(this.config, "tts", { baseUrl: "" });
-            } else {
-              this.config.tts.baseUrl = "";
-            }
-            if (!this.config.speaker.switchSpeakerKeywords) {
-              this.$set(this.config.speaker, "switchSpeakerKeywords", [
-                "把声音换成",
-              ]);
-            }
-          })
-          .catch(() => {
-            this.selectedTTSEngine = this.config.speaker.tts;
-          });
-      } else if (value && this.ttsEngines[value]) {
-        const engine = this.ttsEngines[value];
-        this.config.speaker.tts = engine.value;
-        if (engine.value === "custom") {
-          if (!this.config.tts) {
-            this.$set(this.config, "tts", { baseUrl: engine.baseUrl || "" });
-          } else {
-            this.config.tts.baseUrl = engine.baseUrl || "";
-          }
-          if (!this.config.speaker.switchSpeakerKeywords) {
-            this.$set(this.config.speaker, "switchSpeakerKeywords", [
-              "把声音换成",
-            ]);
-          }
-        } else {
-          this.$set(this.config.speaker, "switchSpeakerKeywords", []);
-        }
-      }
-    },
-    removeTTSEngine(key) {
-      this.$confirm("确定要删除该 TTS 引擎吗？", "提示", {
-        type: "warning",
-      })
-        .then(() => {
-          removeEngine(key);
-          if (this.selectedTTSEngine === key) {
-            const defaultEngine = getDefaultEngine();
-            this.selectedTTSEngine = defaultEngine.value;
-            this.config.speaker.tts = defaultEngine.value;
-            this.config.tts.baseUrl = defaultEngine.baseUrl;
-          }
-          this.$message.success("删除成功");
-        })
-        .catch(() => {});
     },
   },
   async created() {
