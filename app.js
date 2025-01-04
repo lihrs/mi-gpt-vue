@@ -217,6 +217,100 @@ const deleteBotAndMiFile = () => {
     }
 }
 
+/**
+ * 管理端
+ */
+app.post('/api/admin/config', async (req, res) => {
+  try {
+    const config = req.body;
+    // 将配置格式化为 JavaScript 块格式
+    const configContent = `export default ${JSON.stringify(config, null, 2)};`;
+
+    // 写入到 migpt.js 配置文件
+    await fs.promises.writeFile('./migpt.js', configContent, 'utf8');
+    await fs.promises.writeFile('./.migpt.example.js', configContent, 'utf8');
+
+    // 获取当前选中的 AI 服务配置
+    // const selectedService = Object.keys(config).find(key =>
+    //   ['openai', 'azure', 'zhipu', 'tongyi', 'doubao', 'custom'].includes(key) &&
+    //   config[key]?.apiKey &&
+    //   config[key]?.model &&
+    //   config[key]?.endpoint
+    // );
+
+    // 构建 env.yml 内容
+    const envLines = [];
+
+    // 如果有选中的 AI 服务配置，添加到 env.yml 文件
+    if (config['selectedAIService']) {
+      const serviceConfig = config[config['selectedAIService']];
+      envLines.push(
+        `OPENAI_API_KEY: ${serviceConfig.apiKey}`,
+        `OPENAI_MODEL: ${serviceConfig.model}`,
+        `OPENAI_BASE_URL: ${serviceConfig.endpoint.replace('/chat/completions', '')}`
+      );
+    }
+
+    // 如果使用自定义 TTS，添加 TTS 配置到 env.yml 文件
+    if (config.speaker?.tts === 'custom' && config.tts?.baseUrl) {
+      envLines.push(`TTS_BASE_URL: ${config.tts.baseUrl}`);
+    }
+
+    // 确保有内容才写入文件
+    if (envLines.length > 0) {
+      const envContent = envLines.join('\n');
+      await fs.promises.writeFile('env.yml', envContent, 'utf8');
+      console.log('env.yml 文件已更新');
+    }
+
+    // 如果服务正在运行，需要重启才能生效
+    const needRestart = miGPTInstance !== null;
+
+    res.setHeader('Content-Type', 'application/json');
+    res.json({
+      success: true,
+      message: '配置已保存',
+      needRestart
+    });
+  } catch (error) {
+    console.error('保存配置失败:', error);
+    res.status(500).json({
+      error: '保存配置失败: ' + error.message
+    });
+  }
+});
+app.get('/api/admin/config', async (req, res) => {
+  try {
+    // 检查配置文件是否存在
+    if (!fs.existsSync('./migpt.js')) {
+      // 如果不存在，尝试复制示例配置
+      const exampleConfig = await fs.promises.readFile('.migpt.example.js', 'utf8');
+      await fs.promises.writeFile('./migpt.js', exampleConfig, 'utf8');
+      //console.log('已创建默认配置文件');
+    }
+
+    // 读取配置文件
+    const config = await fs.promises.readFile('./migpt.js', 'utf8');
+
+    if (!config) {
+      throw new Error('配文件为空');
+    }
+
+    // console.log('读取到的配置:', config); // 添加调试日志
+
+    res.setHeader('Content-Type', 'application/json');
+    res.json({config});
+  } catch (error) {
+    //console.error('读配置失败:', error);
+    // 返回更详细的错误信息
+    res.status(500).json({
+      error: '读取配置失败',
+      details: error.message,
+      stack: error.stack
+    });
+  }
+});
+
 // 配置相路由
 app.post('/api/config', async (req, res) => {
     try {
@@ -277,7 +371,6 @@ app.post('/api/config', async (req, res) => {
         });
     }
 });
-
 app.get('/api/config', async (req, res) => {
     try {
         // 检查配置文件是否存在

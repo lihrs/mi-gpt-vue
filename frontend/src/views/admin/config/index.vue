@@ -3,6 +3,10 @@
     <el-card class="config-card">
       <div slot="header" class="card-header">
         <div class="header-content">
+          <a class="back-btn" @click="goToHome">
+            <i class="el-icon-arrow-left"></i>
+            返回首页
+          </a>
           <h2 class="title">MiGPT 智能管家配置中心</h2>
           <div class="service-controls">
             <el-tag
@@ -104,7 +108,7 @@
         </div>
       </div>
 
-      <el-tabs v-model="activeTab">
+      <el-tabs v-model="activeTab" class="config-tabs">
         <el-tab-pane name="basic">
           <span slot="label">
             <i class="fas fa-cogs"></i>
@@ -229,6 +233,130 @@
                       </el-tooltip>
                     </template>
                   </el-input>
+                </el-form-item>
+              </el-collapse-item>
+
+              <el-collapse-item title="音箱配置" name="4">
+                <el-form-item label="音箱型号">
+                  <el-select
+                    v-model="selectedDeviceModel"
+                    placeholder="请选择音箱型号"
+                    filterable
+                    allow-create
+                    @change="handleDeviceModelChange"
+                  >
+                    <el-option
+                      v-for="(preset, key) in devicePresets"
+                      :key="key"
+                      :label="preset.label"
+                      :value="key"
+                    ></el-option>
+                  </el-select>
+                  <div class="form-tip">支持自定义添加音箱型号</div>
+                </el-form-item>
+
+                <el-form-item
+                  label="播放命令"
+                  :rules="[
+                    {
+                      required: true,
+                      message: '请设置播放命令',
+                      trigger: 'change',
+                      validator: (rule, value, callback) => {
+                        if (
+                          !this.config.speaker.ttsCommand ||
+                          this.config.speaker.ttsCommand.length === 0
+                        ) {
+                          callback(new Error('请设置播放命令'));
+                        } else if (
+                          this.config.speaker.ttsCommand.some(
+                            (v) => v === null || v === undefined
+                          )
+                        ) {
+                          callback(new Error('播放命令不能为空'));
+                        } else {
+                          callback();
+                        }
+                      },
+                    },
+                  ]"
+                >
+                  <div class="command-group">
+                    <el-input-number
+                      v-for="(num, index) in config.speaker.ttsCommand"
+                      :key="'tts-' + index"
+                      v-model="config.speaker.ttsCommand[index]"
+                      :min="0"
+                      :max="10"
+                      :step="1"
+                      :controls="true"
+                      size="small"
+                      controls-position="right"
+                      class="command-input"
+                    ></el-input-number>
+                  </div>
+                </el-form-item>
+
+                <el-form-item
+                  label="唤醒命令"
+                  :rules="[
+                    {
+                      required: true,
+                      message: '请设置唤醒命令',
+                      trigger: 'change',
+                      validator: (rule, value, callback) => {
+                        if (
+                          !this.config.speaker.wakeUpCommand ||
+                          this.config.speaker.wakeUpCommand.length === 0
+                        ) {
+                          callback(new Error('请设置唤醒命令'));
+                        } else if (
+                          this.config.speaker.wakeUpCommand.some(
+                            (v) => v === null || v === undefined
+                          )
+                        ) {
+                          callback(new Error('唤醒命令不能为空'));
+                        } else {
+                          callback();
+                        }
+                      },
+                    },
+                  ]"
+                >
+                  <div class="command-group">
+                    <el-input-number
+                      v-for="(num, index) in config.speaker.wakeUpCommand"
+                      :key="'wake-' + index"
+                      v-model="config.speaker.wakeUpCommand[index]"
+                      :min="0"
+                      :max="10"
+                      :step="1"
+                      :controls="true"
+                      size="small"
+                      controls-position="right"
+                      class="command-input"
+                    ></el-input-number>
+                  </div>
+                </el-form-item>
+
+                <el-form-item
+                  v-if="config.speaker.playingCommand.length > 0"
+                  label="播放检测命令"
+                >
+                  <div class="command-group">
+                    <el-input-number
+                      v-for="(num, index) in config.speaker.playingCommand"
+                      :key="'play-' + index"
+                      v-model="config.speaker.playingCommand[index]"
+                      :min="0"
+                      :max="10"
+                      :step="1"
+                      :controls="true"
+                      size="small"
+                      controls-position="right"
+                      class="command-input"
+                    ></el-input-number>
+                  </div>
                 </el-form-item>
               </el-collapse-item>
 
@@ -465,8 +593,357 @@
                 </div>
               </el-collapse-item>
 
+              <el-collapse-item title="语音配置" name="5">
+                <el-form-item label="TTS 引擎">
+                  <el-select
+                    v-model="selectedTTSEngine"
+                    placeholder="请选择 TTS 引擎"
+                    @change="handleTTSEngineChange"
+                  >
+                    <el-option
+                      v-for="(engine, key) in ttsEngines"
+                      :key="key"
+                      :label="engine.label"
+                      :value="key"
+                    >
+                      <span class="engine-tooltip">{{ engine.tooltip }}</span>
+                      <span v-if="!engine.isDefault" class="engine-actions">
+                        <el-button
+                          type="text"
+                          size="mini"
+                          icon="el-icon-delete"
+                          @click.stop="removeTTSEngine(key)"
+                        ></el-button>
+                      </span>
+                    </el-option>
+                    <el-option
+                      value="add_new"
+                      label="+ 添加自定义引擎"
+                    ></el-option>
+                  </el-select>
+                  <div class="form-tip">语音合成引擎选择</div>
+                </el-form-item>
+
+                <template
+                  v-if="
+                    selectedTTSEngine &&
+                    ttsEngines[selectedTTSEngine]?.value === 'custom'
+                  "
+                >
+                  <el-form-item label="服务地址">
+                    <el-input
+                      v-model="config.tts.baseUrl"
+                      placeholder="请输入 TTS 服务地址"
+                    >
+                      <template slot="append">
+                        <el-tooltip
+                          content="TTS 服务的接口地址"
+                          placement="top"
+                        >
+                          <i class="el-icon-question"></i>
+                        </el-tooltip>
+                      </template>
+                    </el-input>
+                  </el-form-item>
+                </template>
+
+                <template
+                  v-if="
+                    selectedTTSEngine &&
+                    ttsEngines[selectedTTSEngine]?.value === 'custom'
+                  "
+                >
+                  <el-form-item label="音色切换关键词">
+                    <el-select
+                      v-model="config.speaker.switchSpeakerKeywords"
+                      multiple
+                      allow-create
+                      filterable
+                      default-first-option
+                      placeholder="请输入或选择音色切换关键词"
+                    >
+                      <el-option
+                        v-for="word in ['把声音换成', '切换声音为', '使用音色']"
+                        :key="word"
+                        :label="word"
+                        :value="word"
+                      ></el-option>
+                    </el-select>
+                    <div class="form-tip">
+                      支持自定义添加，按回车确认。使用方式：关键词 + 色名称
+                    </div>
+                  </el-form-item>
+                </template>
+
+                <template
+                  v-if="
+                    selectedTTSEngine &&
+                    ttsEngines[selectedTTSEngine]?.value === 'custom'
+                  "
+                >
+                  <el-form-item label="可用音色">
+                    <el-table
+                      :data="ttsEngines[selectedTTSEngine].speakers"
+                      style="width: 100%"
+                      size="small"
+                    >
+                      <el-table-column
+                        prop="label"
+                        label="音色名称"
+                        width="180"
+                      ></el-table-column>
+                      <el-table-column
+                        prop="value"
+                        label="音色ID"
+                      ></el-table-column>
+                    </el-table>
+                  </el-form-item>
+                </template>
+              </el-collapse-item>
             </el-collapse>
           </el-form>
+        </el-tab-pane>
+
+        <el-tab-pane name="ai">
+          <span slot="label">
+            <i class="fas fa-robot"></i>
+            AI服务配置
+          </span>
+          <el-form
+            ref="aiForm"
+            :model="config"
+            label-width="120px"
+            class="config-form"
+          >
+            <el-form-item label="选择 AI 服务">
+              <el-select
+                v-model="selectedAIService"
+                placeholder="请选择 AI 服务"
+                filterable
+                allow-create
+                @change="handleAIServiceChange"
+              >
+                <el-option
+                  v-for="(service, key) in aiServices"
+                  :key="key"
+                  :label="service.label"
+                  :value="key"
+                ></el-option>
+                <el-option label="自定义 AI 服务" value="custom"></el-option>
+              </el-select>
+              <div class="form-tip">支持自定义添加按回车确认</div>
+            </el-form-item>
+
+            <template v-if="selectedAIService">
+              <el-form-item
+                label="接口地址"
+                class="endpoint-item"
+                :rules="[
+                  {
+                    required: true,
+                    message: '请输入接口地址',
+                    trigger: 'blur',
+                  },
+                ]"
+              >
+                <el-select
+                  v-model="config[selectedAIService].endpoint"
+                  placeholder="请选择或输入接口地址"
+                  filterable
+                  allow-create
+                  @change="handleEndpointChange"
+                >
+                  <el-option
+                    v-if="
+                      selectedAIService !== 'custom' &&
+                      aiServices[selectedAIService]
+                    "
+                    :label="aiServices[selectedAIService]?.endpoint"
+                    :value="aiServices[selectedAIService]?.endpoint"
+                  >
+                    <span class="endpoint-option">{{
+                      aiServices[selectedAIService]?.endpoint
+                    }}</span>
+                  </el-option>
+                </el-select>
+                <div class="form-tip">
+                  {{
+                    (aiServices[selectedAIService] &&
+                      aiServices[selectedAIService].tooltip) ||
+                    "请输入完整的接口地址"
+                  }}
+                </div>
+              </el-form-item>
+
+              <el-form-item
+                label="API 密钥"
+                :rules="[
+                  {
+                    required: true,
+                    message: '请输入 API 密钥',
+                    trigger: 'blur',
+                  },
+                ]"
+              >
+                <el-input
+                  v-model="config[selectedAIService].apiKey"
+                  type="password"
+                  show-password
+                  placeholder="请输入 API 密钥"
+                ></el-input>
+              </el-form-item>
+
+              <el-form-item
+                label="模型"
+                :rules="[
+                  {
+                    required: true,
+                    message: '请选择或输入模型',
+                    trigger: 'change',
+                  },
+                ]"
+              >
+                <el-select
+                  v-model="config[selectedAIService].model"
+                  placeholder="请选择或输入模型"
+                  filterable
+                  allow-create
+                >
+                  <el-option
+                    v-for="model in aiServices[selectedAIService]?.models"
+                    :key="model.value"
+                    :label="model.label"
+                    :value="model.value"
+                  ></el-option>
+                </el-select>
+                <div class="form-tip">支持自定义添加，按回车确认</div>
+              </el-form-item>
+            </template>
+          </el-form>
+        </el-tab-pane>
+
+        <el-tab-pane name="prompt">
+          <span slot="label">
+            <i class="fas fa-file-alt"></i>
+            Prompt模板
+          </span>
+          <el-form
+            ref="promptForm"
+            :model="config"
+            label-width="120px"
+            class="config-form"
+          >
+            <el-form-item label="">
+              <div class="prompt-editor">
+                <div class="editor-header">
+                  <div class="header-actions">
+                    <el-switch
+                      v-model="isPreviewMode"
+                      active-text="预览模式"
+                      inactive-text="编辑模式"
+                      class="mode-switch"
+                    ></el-switch>
+                    <div class="header-buttons">
+                      <el-popover
+                        placement="bottom"
+                        width="400"
+                        trigger="click"
+                        popper-class="variable-guide-popover"
+                      >
+                        <div class="guide-content">
+                          <h3>可用的变量</h3>
+                          <div class="variable-list">
+                            <div
+                              v-for="(item, index) in variableTableData"
+                              :key="index"
+                              class="guide-section"
+                            >
+                              <div class="variable-header">
+                                <code>{{ item.variable }}</code>
+                                <el-button
+                                  type="text"
+                                  icon="el-icon-document-copy"
+                                  class="copy-btn"
+                                  @click="copyVariable(item.variable)"
+                                  >复制</el-button
+                                >
+                              </div>
+                              <p class="variable-desc">
+                                {{ item.description }}
+                              </p>
+                              <p
+                                v-if="item.currentValue"
+                                class="variable-value"
+                              >
+                                当前值: {{ item.currentValue }}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        <el-button
+                          slot="reference"
+                          type="text"
+                          icon="el-icon-info"
+                          >查看可用变量</el-button
+                        >
+                      </el-popover>
+                      <el-button
+                        type="text"
+                        icon="el-icon-refresh-left"
+                        @click="resetSystemTemplate"
+                        >恢复默认模板</el-button
+                      >
+                    </div>
+                  </div>
+                </div>
+
+                <div class="editor-container">
+                  <el-input
+                    v-show="!isPreviewMode"
+                    type="textarea"
+                    v-model="config.systemTemplate"
+                    :rows="20"
+                    :autosize="{ minRows: 10, maxRows: 30 }"
+                    placeholder="请输入系统 Prompt 模板"
+                    class="custom-textarea"
+                  ></el-input>
+
+                  <div
+                    v-show="isPreviewMode"
+                    class="preview-content custom-scrollbar"
+                    v-html="getPreviewContent()"
+                  ></div>
+                </div>
+              </div>
+            </el-form-item>
+          </el-form>
+        </el-tab-pane>
+
+        <el-tab-pane name="json">
+          <span slot="label">
+            <i class="fas fa-code"></i>
+            JSON编辑器
+          </span>
+          <div class="editor-header">
+            <div>
+              <el-button type="primary" size="small" @click="loadExampleConfig">
+                加载示例配置
+              </el-button>
+
+              <el-button type="warning" size="small" @click="syncFormToJson">
+                表单同步到JSON
+              </el-button>
+              <el-button type="success" size="small" @click="syncJsonToForm">
+                JSON同步到表单
+              </el-button>
+            </div>
+          </div>
+          <el-input
+            type="textarea"
+            v-model="configContent"
+            :rows="20"
+            class="config-editor"
+          ></el-input>
         </el-tab-pane>
       </el-tabs>
 
@@ -780,7 +1257,7 @@ export default {
     },
     async loadConfig() {
       try {
-        const response = await fetch("/api/config");
+        const response = await fetch("/api/admin/config");
         const data = await response.json();
         if (data.config) {
           const configStr = data.config
@@ -853,12 +1330,12 @@ export default {
     async saveConfig() {
       try {
         // 同时验证基础配置表单和 AI 配置表单
-        const [basicValid] = await Promise.all([
+        const [basicValid, aiValid] = await Promise.all([
           this.$refs.configForm.validate(),
-          // this.$refs.aiForm.validate(),
+          this.$refs.aiForm.validate(),
         ]);
 
-        if (!basicValid) {
+        if (!basicValid || !aiValid) {
           this.$message.error("请填写必填项");
           return;
         }
@@ -897,7 +1374,7 @@ export default {
         // 更新要保存的配置中模板
         configToSave.systemTemplate = processedTemplate;
 
-        const response = await fetch("/api/config", {
+        const response = await fetch("/api/admin/config", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

@@ -8,15 +8,15 @@ const routes = [
   {
     path: '/',
     name: 'Home',
-    component: () => import('../views/home/index.vue'),
+    component: () => import('../views/config/index.vue'),
     meta: {
       title: '首页 - MiGPT'
     }
   },
   {
-    path: '/config',
+    path: '/xxx_admin/config',
     name: 'Config',
-    component: () => import('../views/config/index.vue'),
+    component: () => import('../views/admin/config/index.vue'),
     meta: {
       title: '配置管理 - MiGPT'
     }
@@ -39,4 +39,4 @@ router.beforeEach((to, from, next) => {
   next();
 });
 
-export default router; 
+export default router;
