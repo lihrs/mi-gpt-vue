@@ -238,8 +238,20 @@ const updateConfig = (parsedConfig, config) => {
 app.post('/api/admin/config', async (req, res) => {
   try {
     const config = req.body;
-    // 将配置格式化为 JavaScript 块格式
-    const configContent = `export default ${JSON.stringify(config, null, 2)};`;
+    // 读取配置文件
+    const migptConfig = await fs.promises.readFile('./migpt.js', 'utf8');
+    if (!migptConfig) {
+      throw new Error('配文件为空');
+    }
+    const configStr = migptConfig.replace(/export\s+default\s+/, "")
+      .replace(/;$/, "")
+      .trim();
+    const parsedConfig = JSON.parse(configStr);
+    // 使用 config 中的值更新 parsedConfig
+    updateConfig(parsedConfig, config);
+
+    // 将更新后的配置格式化为 JavaScript 块格式
+    const configContent = `export default ${JSON.stringify(parsedConfig, null, 2)}`;
 
     // 写入到 migpt.js 配置文件
     await fs.promises.writeFile('./migpt.js', configContent, 'utf8');
@@ -306,17 +318,19 @@ app.get('/api/admin/config', async (req, res) => {
 
     // 读取配置文件
     const config = await fs.promises.readFile('./migpt.js', 'utf8');
-
     if (!config) {
       throw new Error('配文件为空');
     }
-
+    const configStr = config.replace(/export\s+default\s+/, "")
+      .replace(/;$/, "")
+      .trim();
+    const parsedConfig = JSON.parse(configStr);
     // console.log('读取到的配置:', config); // 添加调试日志
 
     res.setHeader('Content-Type', 'application/json');
-    res.json({config});
+    res.json({parsedConfig});
   } catch (error) {
-    //console.error('读配置失败:', error);
+    console.error('读配置失败:', error);
     // 返回更详细的错误信息
     res.status(500).json({
       error: '读取配置失败',
@@ -344,7 +358,7 @@ app.post('/api/config', async (req, res) => {
     updateConfig(parsedConfig, config);
 
     // 将更新后的配置格式化为 JavaScript 块格式
-    const configContent = `export default ${JSON.stringify(parsedConfig, null, 2)};`;
+    const configContent = `export default ${JSON.stringify(parsedConfig, null, 2)}`;
 
     // 写入到 migpt.js 配置文件
     await fs.promises.writeFile('./migpt.js', configContent, 'utf8');

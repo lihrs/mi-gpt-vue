@@ -3,10 +3,6 @@
     <el-card class="config-card">
       <div slot="header" class="card-header">
         <div class="header-content">
-          <a class="back-btn" @click="goToHome">
-            <i class="el-icon-arrow-left"></i>
-            返回首页
-          </a>
           <h2 class="title">MiGPT 智能管家配置中心</h2>
           <div class="service-controls">
             <el-tag
@@ -1259,12 +1255,8 @@ export default {
       try {
         const response = await fetch("/api/admin/config");
         const data = await response.json();
-        if (data.config) {
-          const configStr = data.config
-            .replace(/export\s+default\s+/, "")
-            .replace(/;$/, "")
-            .trim();
-          const parsedConfig = JSON.parse(configStr);
+        if (data.parsedConfig) {
+          const parsedConfig = data.parsedConfig
 
           // 更新整个配置对象
           Object.keys(parsedConfig).forEach((key) => {

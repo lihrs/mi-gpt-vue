@@ -75,13 +75,8 @@ body {
   min-width: 80px;
 }
 
-.config-tabs {
-  padding: 15px;
-}
-
 .config-form {
   max-width: 100%;
-  padding: 5px 15px !important;
   box-sizing: border-box;
 }
 
@@ -286,7 +281,7 @@ body {
     font-size: 12px;
   }
   .config-form {
-    padding: 0 30px;
+    padding: 0 15px;
   }
 
   .el-form-item {
@@ -423,10 +418,6 @@ body {
   .control-buttons .el-button {
     margin-right: 0;
     margin-bottom: 10px;
-  }
-
-  .config-tabs {
-    padding: 15px;
   }
 
   .el-collapse-item__header {

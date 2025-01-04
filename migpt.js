@@ -98,4 +98,4 @@ export default {
     "baseUrl": "https://your-azure-endpoint/tts"
   },
   "selectedAIService": "custom"
-};
+}
