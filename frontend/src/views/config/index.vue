@@ -40,30 +40,33 @@
                 :disabled="
                   serviceStatus.miGPTRunning || isStarting || isRestarting
                 "
+                v-if="!serviceStatus.miGPTRunning"
                 @click="startService"
               >
                 启动
               </el-button>
-              <el-button
-                type="danger"
-                icon="el-icon-video-pause"
-                :loading="isStopping"
-                :disabled="
+              <template   v-if="serviceStatus.miGPTRunning">
+                <el-button
+                  type="danger"
+                  icon="el-icon-video-pause"
+                  :loading="isStopping"
+                  :disabled="
                   !serviceStatus.miGPTRunning || isStopping || isRestarting
                 "
-                @click="stopService"
-              >
-                停止
-              </el-button>
-              <el-button
-                type="warning"
-                icon="el-icon-refresh"
-                :loading="isRestarting"
-                :disabled="isRestarting"
-                @click="restartService"
-              >
-                重启
-              </el-button>
+                  @click="stopService"
+                >
+                  停止
+                </el-button>
+                <el-button
+                  type="warning"
+                  icon="el-icon-refresh"
+                  :loading="isRestarting"
+                  :disabled="isRestarting"
+                  @click="restartService"
+                >
+                  重启
+                </el-button>
+              </template>
             </el-button-group>
 
             <el-popover placement="bottom" width="400" trigger="click">
