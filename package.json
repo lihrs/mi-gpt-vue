@@ -23,7 +23,7 @@
     "home-assistant"
   ],
   "scripts": {
-    "install-deps": "npm install && cd frontend && npm install",
+    "install-deps": "pnpm install && cd frontend && pnpm install",
     "build": "npx -y prisma generate && rm -rf dist && tsup",
     "start": "node app.js"
   },
