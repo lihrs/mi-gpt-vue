@@ -132,8 +132,16 @@ export class BaseSpeaker {
   }
 
   async initMiServices() {
-    this.MiNA = await getMiNA(this.config);
-    this.MiIOT = await getMiIOT(this.config);
+    const getMiNARes:any = await getMiNA(this.config);
+    if (getMiNARes.status !== 1) {
+      throw Error(getMiNARes.msg);
+    }
+    this.MiNA = getMiNARes.data;
+    const getMiIOTRes:any = await getMiIOT(this.config);
+    if (getMiIOTRes.status !== 1) {
+      throw Error(getMiIOTRes.msg);
+    }
+    this.MiIOT = getMiIOTRes.data;
     this.logger.assert(!!this.MiNA && !!this.MiIOT, "初始化 Mi Services 失败");
 
     if (this.debug) {

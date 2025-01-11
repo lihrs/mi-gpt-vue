@@ -1,11 +1,11 @@
-import { md5, sha1 } from "../utils/hash";
-import { Http } from "../utils/http";
-import { encodeQuery, parseAuthPass } from "../utils/codec";
-import { MiNA } from "./mina";
-import { MiAccount, MiPass } from "./types";
-import { MiIOT } from "./miot";
-import { Debugger } from "../utils/debug";
-import { jsonEncode } from "../utils/json";
+import {md5, sha1} from "../utils/hash";
+import {Http} from "../utils/http";
+import {encodeQuery, parseAuthPass} from "../utils/codec";
+import {MiNA} from "./mina";
+import {MiAccount, MiPass} from "./types";
+import {MiIOT} from "./miot";
+import {Debugger} from "../utils/debug";
+import {jsonEncode} from "../utils/json";
 
 const kLoginAPI = "https://account.xiaomi.com/pass";
 
@@ -14,12 +14,12 @@ export async function getAccount(
 ): Promise<MiAccount | undefined> {
   let res = await Http.get(
     `${kLoginAPI}/serviceLogin`,
-    { sid: account.sid, _json: true, _locale: "zh_CN" },
-    { cookies: _getLoginCookies(account) }
+    {sid: account.sid, _json: true, _locale: "zh_CN"},
+    {cookies: _getLoginCookies(account)}
   );
   if (res.isError) {
     console.error("❌ 登录失败", res);
-    return undefined;
+    throw Error("登录失败" + res);
   }
   let pass = parseAuthPass(res);
   if (pass.code !== 0) {
@@ -38,7 +38,7 @@ export async function getAccount(
     });
     if (res.isError) {
       console.error("❌ OAuth2 登录失败", res);
-      return undefined;
+      throw Error("❌ OAuth2 登录失败" + res);
     }
     pass = parseAuthPass(res);
   }
@@ -51,34 +51,41 @@ export async function getAccount(
       console.log(
         "🐛 注意：授权成功后，大约需要等待 1 个小时左右账号信息才会更新，请在更新后再尝试重新登录。"
       );
+      throw Error(
+        "🔥 触发小米账号异地登录安全验证机制，请在浏览器打开以下链接，并按照网页提示授权验证账号：👉 " +
+        (pass.notificationUrl || pass.captchaUrl) +
+        "\n" +
+        "🐛 注意：授权成功后，大约需要等待 1 个小时左右账号信息才会更新，请在更新后再尝试重新登录。"
+      );
     }
     console.error("❌ 小米账号登录失败", res);
-
-    return undefined;
+    throw Error("❌ 小米账号登录失败" + pass.description);
   }
   // 刷新登录态
   const serviceToken = await _getServiceToken(pass);
   if (!serviceToken) {
-    return undefined;
+    throw Error("❌ 获取小米账号服务令牌失败");
   }
-  account = { ...account, pass, serviceToken };
+  account = {...account, pass, serviceToken};
   if (Debugger.enableTrace) {
-    console.log("🐛 小米账号: ", jsonEncode(account, { prettier: true }));
+    console.log("🐛 小米账号: ", jsonEncode(account, {prettier: true}));
   }
   account = await MiNA.getDevice(account as any);
   if (Debugger.enableTrace) {
-    console.log("🐛 MiNA 账号: ", jsonEncode(account, { prettier: true }));
+    console.log("🐛 MiNA 账号: ", jsonEncode(account, {prettier: true}));
   }
   account = await MiIOT.getDevice(account as any);
   if (Debugger.enableTrace) {
-    console.log("🐛 MiIOT 账号: ", jsonEncode(account, { prettier: true }));
+    console.log("🐛 MiIOT 账号: ", jsonEncode(account, {prettier: true}));
   }
   if (account.did && !account.device) {
     console.error("❌ 找不到设备：" + account.did);
-    console.log(
+    throw Error(
+      "❌ 找不到设备：" +
+      account.did +
+      "\n" +
       "🐛 请检查你的 did 与米家中的设备名称是否一致。注意错别字、空格和大小写，比如：音响 👉 音箱"
     );
-    return undefined;
   }
   return account;
 }
@@ -92,14 +99,14 @@ function _getLoginCookies(account: MiAccount) {
 }
 
 async function _getServiceToken(pass: MiPass): Promise<string | undefined> {
-  const { location, nonce, ssecurity } = pass ?? {};
+  const {location, nonce, ssecurity} = pass ?? {};
   const res = await Http.get(
     location!,
     {
       _userIdNeedEncrypt: true,
       clientSign: sha1(`nonce=${nonce}&${ssecurity}`),
     },
-    { rawResponse: true }
+    {rawResponse: true}
   );
 
   let cookies = res.headers?.["set-cookie"] ?? [];
@@ -109,5 +116,5 @@ async function _getServiceToken(pass: MiPass): Promise<string | undefined> {
     }
   }
   console.error("❌ 获取 Mi Service Token 失败", res);
-  return undefined;
+  throw Error("❌ 获取 Mi Service Token 失败");
 }

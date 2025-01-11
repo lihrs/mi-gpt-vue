@@ -182,7 +182,7 @@ async function initMiGPT() {
         }
         miGPTInstance = null;
       }
-      throw new Error('启动服务失败: ' + error.message);
+      throw new Error(error.message);
     }
     console.log('服务启动成功');
 
@@ -560,7 +560,7 @@ app.post('/api/service/start', async (req, res) => {
       await miGPTInstance.stop();
     }
     miGPTInstance = null;
-    res.status(500).json({error: '启动服务失败: ' + error.message});
+    res.status(500).json({error: error.message});
   }
 });
 app.post('/api/service/stop', async (req, res) => {

@@ -562,6 +562,14 @@ declare class MemoryManager {
             updatedAt: Date;
             description: string;
         };
+        msg: {
+            id: number;
+            createdAt: Date;
+            updatedAt: Date;
+            text: string;
+            senderId: string;
+            roomId: string;
+        };
         shortTermMemories: {
             id: number;
             createdAt: Date;
@@ -576,14 +584,6 @@ declare class MemoryManager {
             owner: number;
             room: number;
             shortTermMemories: number;
-        };
-        msg: {
-            id: number;
-            createdAt: Date;
-            updatedAt: Date;
-            text: string;
-            senderId: string;
-            roomId: string;
         };
         owner: {
             name: string;

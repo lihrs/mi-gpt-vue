@@ -943,7 +943,7 @@ async function getAccount(account) {
   );
   if (res.isError) {
     console.error("\u274C \u767B\u5F55\u5931\u8D25", res);
-    return undefined;
+    throw Error("\u767B\u5F55\u5931\u8D25" + res);
   }
   let pass = parseAuthPass(res);
   if (pass.code !== 0) {
@@ -961,7 +961,7 @@ async function getAccount(account) {
     });
     if (res.isError) {
       console.error("\u274C OAuth2 \u767B\u5F55\u5931\u8D25", res);
-      return undefined;
+      throw Error("\u274C OAuth2 \u767B\u5F55\u5931\u8D25" + res);
     }
     pass = parseAuthPass(res);
   }
@@ -974,13 +974,17 @@ async function getAccount(account) {
       console.log(
         "\u{1F41B} \u6CE8\u610F\uFF1A\u6388\u6743\u6210\u529F\u540E\uFF0C\u5927\u7EA6\u9700\u8981\u7B49\u5F85 1 \u4E2A\u5C0F\u65F6\u5DE6\u53F3\u8D26\u53F7\u4FE1\u606F\u624D\u4F1A\u66F4\u65B0\uFF0C\u8BF7\u5728\u66F4\u65B0\u540E\u518D\u5C1D\u8BD5\u91CD\u65B0\u767B\u5F55\u3002"
       );
+      throw Error(
+        "\u{1F525} \u89E6\u53D1\u5C0F\u7C73\u8D26\u53F7\u5F02\u5730\u767B\u5F55\u5B89\u5168\u9A8C\u8BC1\u673A\u5236\uFF0C\u8BF7\u5728\u6D4F\u89C8\u5668\u6253\u5F00\u4EE5\u4E0B\u94FE\u63A5\uFF0C\u5E76\u6309\u7167\u7F51\u9875\u63D0\u793A\u6388\u6743\u9A8C\u8BC1\u8D26\u53F7\uFF1A\u{1F449} " + (pass.notificationUrl || pass.captchaUrl) + "\n\u{1F41B} \u6CE8\u610F\uFF1A\u6388\u6743\u6210\u529F\u540E\uFF0C\u5927\u7EA6\u9700\u8981\u7B49\u5F85 1 \u4E2A\u5C0F\u65F6\u5DE6\u53F3\u8D26\u53F7\u4FE1\u606F\u624D\u4F1A\u66F4\u65B0\uFF0C\u8BF7\u5728\u66F4\u65B0\u540E\u518D\u5C1D\u8BD5\u91CD\u65B0\u767B\u5F55\u3002"
+      );
     }
     console.error("\u274C \u5C0F\u7C73\u8D26\u53F7\u767B\u5F55\u5931\u8D25", res);
-    return undefined;
+    console.log(JSON.stringify(res));
+    throw Error("\u274C \u5C0F\u7C73\u8D26\u53F7\u767B\u5F55\u5931\u8D25");
   }
   const serviceToken = await _getServiceToken(pass);
   if (!serviceToken) {
-    return undefined;
+    throw Error("\u274C \u83B7\u53D6\u5C0F\u7C73\u8D26\u53F7\u670D\u52A1\u4EE4\u724C\u5931\u8D25");
   }
   account = { ...account, pass, serviceToken };
   if (Debugger.enableTrace) {
@@ -996,10 +1000,9 @@ async function getAccount(account) {
   }
   if (account.did && !account.device) {
     console.error("\u274C \u627E\u4E0D\u5230\u8BBE\u5907\uFF1A" + account.did);
-    console.log(
-      "\u{1F41B} \u8BF7\u68C0\u67E5\u4F60\u7684 did \u4E0E\u7C73\u5BB6\u4E2D\u7684\u8BBE\u5907\u540D\u79F0\u662F\u5426\u4E00\u81F4\u3002\u6CE8\u610F\u9519\u522B\u5B57\u3001\u7A7A\u683C\u548C\u5927\u5C0F\u5199\uFF0C\u6BD4\u5982\uFF1A\u97F3\u54CD \u{1F449} \u97F3\u7BB1"
+    throw Error(
+      "\u274C \u627E\u4E0D\u5230\u8BBE\u5907\uFF1A" + account.did + "\n\u{1F41B} \u8BF7\u68C0\u67E5\u4F60\u7684 did \u4E0E\u7C73\u5BB6\u4E2D\u7684\u8BBE\u5907\u540D\u79F0\u662F\u5426\u4E00\u81F4\u3002\u6CE8\u610F\u9519\u522B\u5B57\u3001\u7A7A\u683C\u548C\u5927\u5C0F\u5199\uFF0C\u6BD4\u5982\uFF1A\u97F3\u54CD \u{1F449} \u97F3\u7BB1"
     );
-    return undefined;
   }
   return account;
 }
@@ -1029,7 +1032,7 @@ async function _getServiceToken(pass) {
     }
   }
   console.error("\u274C \u83B7\u53D6 Mi Service Token \u5931\u8D25", res);
-  return undefined;
+  throw Error("\u274C \u83B7\u53D6 Mi Service Token \u5931\u8D25");
 }
 
 // src/mi-service-lite/mi/index.ts
@@ -1048,15 +1051,19 @@ async function getMiService(config2) {
   };
   if (!account.userId || !account.password) {
     console.error("\u274C \u6CA1\u6709\u627E\u5230\u8D26\u53F7\u6216\u5BC6\u7801\uFF0C\u8BF7\u68C0\u67E5\u662F\u5426\u5DF2\u914D\u7F6E\u76F8\u5173\u53C2\u6570\uFF1AuserId, password");
-    return;
+    return { status: 500, msg: "\u6CA1\u6709\u627E\u5230\u8D26\u53F7\u6216\u5BC6\u7801\uFF0C\u8BF7\u68C0\u67E5\u662F\u5426\u5DF2\u914D\u7F6E\u76F8\u5173\u53C2\u6570\uFF1AuserId, password" };
   }
-  account = await getAccount(account);
-  if (!(account == null ? undefined : account.serviceToken) || !((_a = account.pass) == null ? undefined : _a.ssecurity)) {
-    return undefined;
+  try {
+    account = await getAccount(account);
+    if (!(account == null ? void 0 : account.serviceToken) || !((_a = account.pass) == null ? void 0 : _a.ssecurity)) {
+      return { status: 500, msg: "?" };
+    }
+  } catch (e) {
+    return { status: 500, msg: e.message };
   }
   store[service] = account;
   await writeJSON(kConfigFile, store);
-  return service === "miiot" ? new MiIOT(account) : new MiNA(account);
+  return { status: 1, data: service === "miiot" ? new MiIOT(account) : new MiNA(account) };
 }
 
 // src/mi-service-lite/index.ts
@@ -1346,8 +1353,16 @@ var BaseSpeaker = class {
     }
   }
   async initMiServices() {
-    this.MiNA = await getMiNA(this.config);
-    this.MiIOT = await getMiIOT(this.config);
+    const getMiNARes = await getMiNA(this.config);
+    if (getMiNARes.status !== 1) {
+      throw Error(getMiNARes.msg);
+    }
+    this.MiNA = getMiNARes.data;
+    const getMiIOTRes = await getMiIOT(this.config);
+    if (getMiIOTRes.status !== 1) {
+      throw Error(getMiIOTRes.msg);
+    }
+    this.MiIOT = getMiIOTRes.data;
     this.logger.assert(!!this.MiNA && !!this.MiIOT, "\u521D\u59CB\u5316 Mi Services \u5931\u8D25");
     if (this.debug) {
       this.logger.debug(
