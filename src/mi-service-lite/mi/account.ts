@@ -59,7 +59,7 @@ export async function getAccount(
       );
     }
     console.error("❌ 小米账号登录失败", res);
-    throw Error("❌ 小米账号登录失败" + pass.description);
+    throw Error("❌ 小米账号登录失败" + pass?.description);
   }
   // 刷新登录态
   const serviceToken = await _getServiceToken(pass);

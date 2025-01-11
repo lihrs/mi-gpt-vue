@@ -1011,8 +1011,7 @@ async function getAccount(account) {
       );
     }
     console.error("\u274C \u5C0F\u7C73\u8D26\u53F7\u767B\u5F55\u5931\u8D25", res);
-    console.log(JSON.stringify(res));
-    throw Error("\u274C \u5C0F\u7C73\u8D26\u53F7\u767B\u5F55\u5931\u8D25");
+    throw Error("\u274C \u5C0F\u7C73\u8D26\u53F7\u767B\u5F55\u5931\u8D25" + (pass == null ? undefined : pass.description));
   }
   const serviceToken = await _getServiceToken(pass);
   if (!serviceToken) {
