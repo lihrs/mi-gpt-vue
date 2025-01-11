@@ -29,14 +29,14 @@
   },
   "dependencies": {
     "@prisma/client": "^5.14.0",
+    "axios": "^1.7.9",
     "body-parser": "^1.20.3",
     "express": "^4.21.2",
     "fs-extra": "^11.2.0",
     "js-yaml": "^4.1.0",
-    "mi-gpt": "^4.2.0",
-    "mi-service-lite": "^3.1.0",
     "openai": "^4.56.0",
     "prisma": "^5.14.0",
+    "pako": "^2.1.0",
     "proxy-agent": "^6.4.0"
   },
   "devDependencies": {

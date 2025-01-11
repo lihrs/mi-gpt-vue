@@ -1,12 +1,16 @@
+import * as fs from 'fs';
 import { readFileSync } from 'fs';
 import * as yaml from 'js-yaml';
-import { getMiNA, getMiIOT } from 'mi-service-lite';
+import * as path from 'path';
+import path__default from 'path';
+import * as crypto from 'crypto';
 import { randomUUID } from 'crypto';
+import axios from 'axios';
+import * as pako from 'pako';
 import OpenAI, { AzureOpenAI } from 'openai';
 import { ProxyAgent } from 'proxy-agent';
 import { PrismaClient } from '@prisma/client';
-import fs from 'fs-extra';
-import path from 'path';
+import fs2 from 'fs-extra';
 import { exec as exec$1 } from 'child_process';
 import { promisify } from 'util';
 
@@ -15,7 +19,7 @@ function isNaN(e) {
   return Number.isNaN(e);
 }
 function isNullish(e) {
-  return e === null || e === void 0;
+  return e === null || e === undefined;
 }
 function isNotNullish(e) {
   return !isNullish(e);
@@ -30,7 +34,7 @@ function isObject(e) {
   return typeof e === "object" && isNotNullish(e);
 }
 function isEmpty(e) {
-  if ((e == null ? void 0 : e.size) ?? 0 > 0) return false;
+  if ((e == null ? undefined : e.size) ?? 0 > 0) return false;
   return isNaN(e) || isNullish(e) || isString(e) && (e.length < 1 || !/\S/.test(e)) || isArray(e) && e.length < 1 || isObject(e) && Object.keys(e).length < 1;
 }
 function isNotEmpty(e) {
@@ -39,11 +43,11 @@ function isNotEmpty(e) {
 
 // src/utils/parse.ts
 function cleanJsonAndDecode(input) {
-  if (input == void 0) return void 0;
+  if (input == undefined) return undefined;
   const pattern = /(\{[\s\S]*?"\s*:\s*[\s\S]*?})/;
   const match = input.match(pattern);
   if (!match) {
-    return void 0;
+    return undefined;
   }
   return jsonDecode(match[0]);
 }
@@ -52,27 +56,27 @@ function jsonEncode(obj, options) {
   try {
     return prettier ? JSON.stringify(obj, void 0, 4) : JSON.stringify(obj);
   } catch (error) {
-    return void 0;
+    return undefined;
   }
 }
 function jsonDecode(json) {
-  if (json == void 0) return void 0;
+  if (json == undefined) return undefined;
   try {
     return JSON.parse(json);
   } catch (error) {
-    return void 0;
+    return undefined;
   }
 }
 
 // src/utils/base.ts
 async function sleep(time) {
-  return new Promise((resolve) => setTimeout(resolve, time));
+  return new Promise((resolve2) => setTimeout(resolve2, time));
 }
 function firstOf(datas) {
-  return datas ? datas.length < 1 ? void 0 : datas[0] : void 0;
+  return datas ? datas.length < 1 ? undefined : datas[0] : undefined;
 }
 function lastOf(datas) {
-  return datas ? datas.length < 1 ? void 0 : datas[datas.length - 1] : void 0;
+  return datas ? datas.length < 1 ? undefined : datas[datas.length - 1] : undefined;
 }
 function randomInt(min, max) {
   if (!max) {
@@ -82,7 +86,7 @@ function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1) + min);
 }
 function pickOne(datas) {
-  return datas.length < 1 ? void 0 : datas[randomInt(datas.length - 1)];
+  return datas.length < 1 ? undefined : datas[randomInt(datas.length - 1)];
 }
 function clamp(num, min, max) {
   return num < max ? num > min ? num : min : max;
@@ -98,11 +102,11 @@ function removeEmpty(data) {
     return data;
   }
   if (Array.isArray(data)) {
-    return data.filter((e) => e != void 0);
+    return data.filter((e) => e != undefined);
   }
   const res = {};
   for (const key in data) {
-    if (data[key] != void 0) {
+    if (data[key] != undefined) {
       res[key] = data[key];
     }
   }
@@ -220,6 +224,853 @@ var fileContents = readFileSync("./env.yml", "utf8");
 var config = yaml.load(fileContents);
 var kEnvs = config;
 
+// src/mi-service-lite/utils/json.ts
+function jsonEncode2(obj, options) {
+  const { prettier } = options ?? {};
+  try {
+    return prettier ? JSON.stringify(obj, void 0, 4) : JSON.stringify(obj);
+  } catch (error) {
+    return undefined;
+  }
+}
+function jsonDecode2(json) {
+  if (json == undefined) return undefined;
+  try {
+    return JSON.parse(json);
+  } catch (error) {
+    return undefined;
+  }
+}
+
+// src/mi-service-lite/utils/io.ts
+process.cwd();
+process.env;
+var readFile2 = (filePath, options) => {
+  const dirname2 = path.dirname(filePath);
+  if (!fs.existsSync(dirname2)) {
+    return undefined;
+  }
+  return new Promise((resolve2) => {
+    fs.readFile(filePath, options, (err, data) => {
+      resolve2(err ? undefined : data);
+    });
+  });
+};
+var writeFile2 = (filePath, data, options) => {
+  const dirname2 = path.dirname(filePath);
+  if (!fs.existsSync(dirname2)) {
+    fs.mkdirSync(dirname2, { recursive: true });
+  }
+  return new Promise((resolve2) => {
+    {
+      fs.writeFile(filePath, data, options, (err) => {
+        resolve2(err ? false : true);
+      });
+    }
+  });
+};
+var readJSON = async (filePath) => jsonDecode2(await readFile2(filePath, "utf8"));
+var writeJSON = (filePath, content) => writeFile2(filePath, jsonEncode2(content) ?? "", "utf8");
+function md5(s) {
+  return crypto.createHash("md5").update(s).digest("hex");
+}
+function sha1(s) {
+  return crypto.createHash("sha1").update(s).digest("base64");
+}
+function signNonce(ssecurity, nonce) {
+  let m = crypto.createHash("sha256");
+  m.update(ssecurity, "base64");
+  m.update(nonce, "base64");
+  return m.digest().toString("base64");
+}
+function uuid() {
+  return crypto.randomUUID();
+}
+function randomNoice() {
+  return Buffer.from(
+    Array(12).fill(0).map(() => Math.floor(Math.random() * 256))
+  ).toString("base64");
+}
+
+// src/mi-service-lite/utils/is.ts
+function isNaN2(e) {
+  return Number.isNaN(e);
+}
+function isNullish2(e) {
+  return e === null || e === undefined;
+}
+function isNotNullish2(e) {
+  return !isNullish2(e);
+}
+function isString2(e) {
+  return typeof e === "string";
+}
+function isArray2(e) {
+  return Array.isArray(e);
+}
+function isObject2(e) {
+  return typeof e === "object" && isNotNullish2(e);
+}
+function isEmpty2(e) {
+  if ((e == null ? undefined : e.size) ?? 0 > 0) return false;
+  return isNaN2(e) || isNullish2(e) || isString2(e) && (e.length < 1 || !/\S/.test(e)) || isArray2(e) && e.length < 1 || isObject2(e) && Object.keys(e).length < 1;
+}
+function isNotEmpty2(e) {
+  return !isEmpty2(e);
+}
+
+// src/mi-service-lite/utils/debug.ts
+var Debugger = {
+  enableTrace: false
+};
+
+// src/mi-service-lite/utils/base.ts
+var sleep2 = async (time) => new Promise((resolve2) => setTimeout(resolve2, time));
+function clamp2(n, min, max) {
+  return Math.max(min, Math.min(n, max));
+}
+
+// src/mi-service-lite/utils/http.ts
+var _baseConfig = {
+  proxy: false,
+  decompress: true,
+  headers: {
+    "Accept-Encoding": "gzip, deflate",
+    "Content-Type": "application/x-www-form-urlencoded",
+    "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 10; RMX2111 Build/QP1A.190711.020) APP/xiaomi.mico APPV/2004040 MK/Uk1YMjExMQ== PassportSDK/3.8.3 passport-ui/3.8.3"
+  }
+};
+var _http = axios.create(_baseConfig);
+_http.interceptors.response.use(
+  (res) => {
+    if (res.config.rawResponse) {
+      return res;
+    }
+    return res.data;
+  },
+  async (err) => {
+    var _a, _b, _c, _d, _e;
+    const newResult = await tokenRefresher.refreshTokenAndRetry(err);
+    if (newResult) {
+      return newResult;
+    }
+    const error = ((_b = (_a = err.response) == null ? undefined : _a.data) == null ? undefined : _b.error) || ((_c = err.response) == null ? undefined : _c.data);
+    const request = {
+      method: err.config.method,
+      url: err.config.url,
+      headers: jsonEncode2(err.config.headers),
+      data: jsonEncode2({ body: err.config.data })
+    };
+    const response = !err.response ? undefined : {
+      url: err.config.url,
+      status: err.response.status,
+      headers: jsonEncode2(err.response.headers),
+      data: jsonEncode2({ body: err.response.data })
+    };
+    return {
+      isError: true,
+      code: (error == null ? undefined : error.code) || ((_d = err.response) == null ? undefined : _d.status) || err.code || "\u672A\u77E5",
+      message: (error == null ? undefined : error.message) || ((_e = err.response) == null ? undefined : _e.statusText) || err.message || "\u672A\u77E5",
+      error: { request, response }
+    };
+  }
+);
+var HTTPClient = class _HTTPClient {
+  // 默认 3 秒超时
+  timeout = 3 * 1e3;
+  async get(url, query, config2) {
+    if (config2 === undefined) {
+      config2 = query;
+      query = undefined;
+    }
+    return _http.get(
+      _HTTPClient.buildURL(url, query),
+      _HTTPClient.buildConfig(config2)
+    );
+  }
+  async post(url, data, config2) {
+    return _http.post(url, data, _HTTPClient.buildConfig(config2));
+  }
+  static buildURL = (url, query) => {
+    const _url = new URL(url);
+    for (const [key, value] of Object.entries(query ?? {})) {
+      if (isNotEmpty2(value)) {
+        _url.searchParams.append(key, value.toString());
+      }
+    }
+    return _url.href;
+  };
+  static buildConfig = (config2) => {
+    if (config2 == null ? undefined : config2.cookies) {
+      config2.headers = {
+        ...config2.headers,
+        Cookie: Object.entries(config2.cookies).map(
+          ([key, value]) => `${key}=${value == null ? "" : value.toString()};`
+        ).join(" ")
+      };
+    }
+    if (config2 && !config2.timeout) {
+      config2.timeout = Http.timeout;
+    }
+    return config2;
+  };
+};
+var Http = new HTTPClient();
+var TokenRefresher = class {
+  isRefreshing = false;
+  /**
+   * 自动刷新过期的凭证，并重新发送请求
+   */
+  async refreshTokenAndRetry(err, maxRetry = 3) {
+    var _a, _b, _c, _d, _e;
+    const isMina = (_b = (_a = err == null ? undefined : err.config) == null ? undefined : _a.url) == null ? undefined : _b.includes("mina.mi.com");
+    const isMIoT = (_d = (_c = err == null ? undefined : err.config) == null ? undefined : _c.url) == null ? undefined : _d.includes("io.mi.com");
+    if (!isMina && !isMIoT || ((_e = err.response) == null ? undefined : _e.status) !== 401) {
+      return;
+    }
+    if (this.isRefreshing) {
+      return;
+    }
+    let result;
+    this.isRefreshing = true;
+    let newServiceAccount = undefined;
+    for (let i = 0; i < maxRetry; i++) {
+      if (Debugger.enableTrace) {
+        console.log(`\u274C \u767B\u5F55\u51ED\u8BC1\u5DF2\u8FC7\u671F\uFF0C\u6B63\u5728\u5C1D\u8BD5\u5237\u65B0 Token ${i + 1}`);
+      }
+      newServiceAccount = await this.refreshToken(err);
+      if (newServiceAccount) {
+        result = await this.retry(err, newServiceAccount);
+        break;
+      }
+      await sleep2(3e3);
+    }
+    this.isRefreshing = false;
+    if (!newServiceAccount) {
+      console.error("\u274C \u5237\u65B0\u767B\u5F55\u51ED\u8BC1\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5\u8D26\u53F7\u5BC6\u7801\u662F\u5426\u4ECD\u7136\u6709\u6548\u3002");
+    }
+    return result;
+  }
+  /**
+   * 刷新登录凭证并同步到本地
+   */
+  async refreshToken(err) {
+    var _a, _b, _c;
+    const isMina = (_b = (_a = err == null ? undefined : err.config) == null ? undefined : _a.url) == null ? undefined : _b.includes("mina.mi.com");
+    const account = (_c = await getMiService({ service: isMina ? "mina" : "miiot", relogin: true })) == null ? undefined : _c.account;
+    if (account && err.config.account) {
+      for (const key in account) {
+        err.config.account[key] = account[key];
+      }
+      err.config.setAccount(err.config.account);
+    }
+    return account;
+  }
+  /**
+   * 重新请求
+   */
+  async retry(err, account) {
+    const cookies = err.config.cookies ?? {};
+    for (const key of ["serviceToken"]) {
+      if (cookies[key] && account[key]) {
+        cookies[key] = account[key];
+      }
+    }
+    for (const key of ["deviceSNProfile"]) {
+      if (cookies[key] && account.device[key]) {
+        cookies[key] = account.device[key];
+      }
+    }
+    return _http(HTTPClient.buildConfig(err.config));
+  }
+};
+var tokenRefresher = new TokenRefresher();
+
+// src/mi-service-lite/utils/rc4.ts
+var RC4 = class {
+  iii;
+  jjj;
+  bytes;
+  constructor(buf) {
+    this.bytes = new Uint8Array(256);
+    const length = buf.length;
+    for (let i = 0; i < 256; i++) {
+      this.bytes[i] = i;
+    }
+    let i2 = 0;
+    for (let i3 = 0; i3 < 256; i3++) {
+      const i4 = i2 + buf[i3 % length];
+      const b = this.bytes[i3];
+      i2 = i4 + b & 255;
+      this.bytes[i3] = this.bytes[i2];
+      this.bytes[i2] = b;
+    }
+    this.iii = 0;
+    this.jjj = 0;
+  }
+  update(buf) {
+    for (let i = 0; i < buf.length; i++) {
+      const b = buf[i];
+      const i2 = this.iii + 1 & 255;
+      this.iii = i2;
+      const i3 = this.jjj;
+      const arr = this.bytes;
+      const b2 = arr[i2];
+      const i4 = i3 + b2 & 255;
+      this.jjj = i4;
+      arr[i2] = arr[i4];
+      arr[i4] = b2;
+      buf[i] = b ^ arr[arr[i2] + b2 & 255];
+    }
+    return buf;
+  }
+};
+function rc4Hash(method, uri, data, ssecurity) {
+  var arrayList = [];
+  if (method != null) {
+    arrayList.push(method.toUpperCase());
+  }
+  if (uri != null) {
+    arrayList.push(uri);
+  }
+  if (data != null) {
+    for (var k in data) {
+      arrayList.push(k + "=" + data[k]);
+    }
+  }
+  arrayList.push(ssecurity);
+  var sb = arrayList.join("&");
+  return sha1(sb);
+}
+function parseAuthPass(res) {
+  try {
+    return jsonDecode2(
+      res.replace("&&&START&&&", "").replace(/:(\d{9,})/g, ':"$1"')
+      // 把 userId 和 nonce 转成 string
+    ) ?? {};
+  } catch {
+    return {};
+  }
+}
+function encodeQuery(data) {
+  return Object.entries(data).map(
+    ([key, value]) => encodeURIComponent(key) + "=" + encodeURIComponent(value == null ? "" : value.toString())
+  ).join("&");
+}
+function encodeMiIOT(method, uri, data, ssecurity) {
+  let nonce = randomNoice();
+  const snonce = signNonce(ssecurity, nonce);
+  let key = Buffer.from(snonce, "base64");
+  let rc4 = new RC4(key);
+  rc4.update(Buffer.alloc(1024));
+  let json = jsonEncode2(data);
+  let map = { data: json };
+  map.rc4_hash__ = rc4Hash(method, uri, map, snonce);
+  for (let k in map) {
+    let v = map[k];
+    map[k] = rc4.update(Buffer.from(v)).toString("base64");
+  }
+  map.signature = rc4Hash(method, uri, map, snonce);
+  map._nonce = nonce;
+  map.ssecurity = ssecurity;
+  return map;
+}
+function decodeMiIOT(ssecurity, nonce, data, gzip) {
+  let key = Buffer.from(signNonce(ssecurity, nonce), "base64");
+  let rc4 = new RC4(key);
+  rc4.update(Buffer.alloc(1024));
+  let decrypted = rc4.update(Buffer.from(data, "base64"));
+  let error = undefined;
+  if (gzip) {
+    try {
+      decrypted = pako.ungzip(decrypted, { to: "string" });
+    } catch (err) {
+      error = err;
+    }
+  }
+  const res = jsonDecode2(decrypted.toString());
+  if (!res) {
+    console.error("\u274C decodeMiIOT failed", error);
+  }
+  return Promise.resolve(res);
+}
+
+// src/mi-service-lite/mi/common.ts
+function updateMiAccount(account) {
+  return (newAccount) => {
+    for (const key in newAccount) {
+      account[key] = newAccount[key];
+    }
+  };
+}
+
+// src/mi-service-lite/mi/mina.ts
+var MiNA = class _MiNA {
+  account;
+  constructor(account) {
+    this.account = account;
+  }
+  static async getDevice(account) {
+    if (account.sid !== "micoapi") {
+      return account;
+    }
+    const devices = await this.__callMina(
+      account,
+      "GET",
+      "/admin/v2/device_list"
+    );
+    if (Debugger.enableTrace) {
+      console.log(
+        "\u{1F41B} MiNA \u8BBE\u5907\u5217\u8868: ",
+        jsonEncode2(devices, { prettier: true })
+      );
+    }
+    const device = (devices ?? []).find(
+      (e) => [e.deviceID, e.miotDID, e.name, e.alias].includes(account.did)
+    );
+    if (device) {
+      account.device = { ...device, deviceId: device.deviceID };
+    }
+    return account;
+  }
+  static async __callMina(account, method, path3, data) {
+    var _a, _b, _c, _d;
+    data = {
+      ...data,
+      requestId: uuid(),
+      timestamp: Math.floor(Date.now() / 1e3)
+    };
+    const url = "https://api2.mina.mi.com" + path3;
+    const config2 = {
+      account,
+      setAccount: updateMiAccount(account),
+      headers: { "User-Agent": "MICO/AndroidApp/@SHIP.TO.2A2FE0D7@/2.4.40" },
+      cookies: {
+        userId: account.userId,
+        serviceToken: account.serviceToken,
+        sn: (_a = account.device) == null ? undefined : _a.serialNumber,
+        hardware: (_b = account.device) == null ? undefined : _b.hardware,
+        deviceId: (_c = account.device) == null ? undefined : _c.deviceId,
+        deviceSNProfile: (_d = account.device) == null ? undefined : _d.deviceSNProfile
+      }
+    };
+    let res;
+    if (method === "GET") {
+      res = await Http.get(url, data, config2);
+    } else {
+      res = await Http.post(url, encodeQuery(data), config2);
+    }
+    if (res.code !== 0) {
+      if (Debugger.enableTrace) {
+        console.error("\u274C _callMina failed", res);
+      }
+      return undefined;
+    }
+    return res.data;
+  }
+  async _callMina(method, path3, data) {
+    return _MiNA.__callMina(this.account, method, path3, data);
+  }
+  ubus(scope, command, message) {
+    var _a;
+    message = jsonEncode2(message ?? {});
+    return this._callMina("POST", "/remote/ubus", {
+      deviceId: (_a = this.account.device) == null ? undefined : _a.deviceId,
+      path: scope,
+      method: command,
+      message
+    });
+  }
+  getDevices() {
+    return this._callMina("GET", "/admin/v2/device_list");
+  }
+  async getStatus() {
+    const data = await this.ubus("mediaplayer", "player_get_play_status");
+    const res = jsonDecode2(data == null ? undefined : data.info);
+    if (!data || data.code !== 0 || !res) {
+      return;
+    }
+    const map = { 0: "idle", 1: "playing", 2: "paused", 3: "stopped" };
+    return {
+      ...res,
+      status: map[res.status] ?? "unknown",
+      volume: res.volume
+    };
+  }
+  async getVolume() {
+    const data = await this.getStatus();
+    return data == null ? undefined : data.volume;
+  }
+  async setVolume(volume) {
+    volume = Math.round(clamp2(volume, 6, 100));
+    const res = await this.ubus("mediaplayer", "player_set_volume", {
+      volume
+    });
+    return (res == null ? undefined : res.code) === 0;
+  }
+  async play(options) {
+    let res;
+    const { tts, url } = options ?? {};
+    if (tts) {
+      res = await this.ubus("mibrain", "text_to_speech", {
+        text: tts,
+        save: 0
+      });
+    } else if (url) {
+      res = await this.ubus("mediaplayer", "player_play_url", {
+        url,
+        type: 1
+      });
+    } else {
+      res = await this.ubus("mediaplayer", "player_play_operation", {
+        action: "play"
+      });
+    }
+    return (res == null ? undefined : res.code) === 0;
+  }
+  async pause() {
+    const res = await this.ubus("mediaplayer", "player_play_operation", {
+      action: "pause"
+    });
+    return (res == null ? undefined : res.code) === 0;
+  }
+  async playOrPause() {
+    const res = await this.ubus("mediaplayer", "player_play_operation", {
+      action: "toggle"
+    });
+    return (res == null ? undefined : res.code) === 0;
+  }
+  async stop() {
+    const res = await this.ubus("mediaplayer", "player_play_operation", {
+      action: "stop"
+    });
+    return (res == null ? undefined : res.code) === 0;
+  }
+  /**
+   * 注意：
+   * 只拉取用户主动请求，设备被动响应的消息，
+   * 不包含设备主动回应用户的消息。
+   *
+   * - 从游标处由新到旧拉取
+   * - 结果包含游标消息本身
+   * - 消息列表从新到旧排序
+   */
+  async getConversations(options) {
+    var _a, _b;
+    const { limit = 10, timestamp } = options ?? {};
+    const res = await Http.get(
+      "https://userprofile.mina.mi.com/device_profile/v2/conversation",
+      {
+        limit,
+        timestamp,
+        requestId: uuid(),
+        source: "dialogu",
+        hardware: (_a = this.account.device) == null ? undefined : _a.hardware
+      },
+      {
+        account: this.account,
+        setAccount: updateMiAccount(this.account),
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Linux; Android 10; 000; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/119.0.6045.193 Mobile Safari/537.36 /XiaoMi/HybridView/ micoSoundboxApp/i appVersion/A_2.4.40",
+          Referer: "https://userprofile.mina.mi.com/dialogue-note/index.html"
+        },
+        cookies: {
+          userId: this.account.userId,
+          serviceToken: this.account.serviceToken,
+          deviceId: (_b = this.account.device) == null ? undefined : _b.deviceId
+        }
+      }
+    );
+    if (res.code !== 0) {
+      if (Debugger.enableTrace) {
+        console.error("\u274C getConversations failed", res);
+      }
+      return undefined;
+    }
+    return jsonDecode2(res.data);
+  }
+};
+
+// src/mi-service-lite/mi/miot.ts
+var MiIOT = class _MiIOT {
+  account;
+  constructor(account) {
+    this.account = account;
+  }
+  static async getDevice(account) {
+    if (account.sid !== "xiaomiio") {
+      return account;
+    }
+    const devices = await this.__callMiIOT(
+      account,
+      "POST",
+      "/home/device_list",
+      {
+        getVirtualModel: false,
+        getHuamiDevices: 0
+      }
+    );
+    if (Debugger.enableTrace) {
+      console.log(
+        "\u{1F41B} MiIOT \u8BBE\u5907\u5217\u8868: ",
+        jsonEncode2(devices, { prettier: true })
+      );
+    }
+    const device = ((devices == null ? undefined : devices.list) ?? []).find(
+      (e) => [e.did, e.name].includes(account.did)
+    );
+    if (device) {
+      account.device = device;
+    }
+    return account;
+  }
+  static async __callMiIOT(account, method, path3, _data) {
+    var _a;
+    const url = "https://api.io.mi.com/app" + path3;
+    const config2 = {
+      account,
+      setAccount: updateMiAccount(account),
+      rawResponse: true,
+      validateStatus: () => true,
+      headers: {
+        "User-Agent": "MICO/AndroidApp/@SHIP.TO.2A2FE0D7@/2.4.40",
+        "x-xiaomi-protocal-flag-cli": "PROTOCAL-HTTP2",
+        "miot-accept-encoding": "GZIP",
+        "miot-encrypt-algorithm": "ENCRYPT-RC4"
+      },
+      cookies: {
+        countryCode: "CN",
+        locale: "zh_CN",
+        timezone: "GMT+08:00",
+        timezone_id: "Asia/Shanghai",
+        userId: account.userId,
+        cUserId: (_a = account.pass) == null ? undefined : _a.cUserId,
+        PassportDeviceId: account.deviceId,
+        serviceToken: account.serviceToken,
+        yetAnotherServiceToken: account.serviceToken
+      }
+    };
+    let res;
+    const data = encodeMiIOT(method, path3, _data, account.pass.ssecurity);
+    if (method === "GET") {
+      res = await Http.get(url, data, config2);
+    } else {
+      res = await Http.post(url, encodeQuery(data), config2);
+    }
+    if (typeof res.data !== "string") {
+      if (Debugger.enableTrace) {
+        console.error("\u274C _callMiIOT failed", res);
+      }
+      return undefined;
+    }
+    res = await decodeMiIOT(
+      account.pass.ssecurity,
+      data._nonce,
+      res.data,
+      res.headers["miot-content-encoding"] === "GZIP"
+    );
+    return res == null ? undefined : res.result;
+  }
+  async _callMiIOT(method, path3, data) {
+    return _MiIOT.__callMiIOT(this.account, method, path3, data);
+  }
+  rpc(method, params, id = 1) {
+    return this._callMiIOT("POST", "/home/rpc/" + this.account.device.did, {
+      id,
+      method,
+      params
+    });
+  }
+  /**
+   * - datasource=1  优先从服务器缓存读取，没有读取到下发rpc；不能保证取到的一定是最新值
+   * - datasource=2  直接下发rpc，每次都是设备返回的最新值
+   * - datasource=3  直接读缓存；没有缓存的 code 是 -70xxxx；可能取不到值
+   */
+  _callMiotSpec(command, params, datasource = 2) {
+    return this._callMiIOT("POST", "/miotspec/" + command, {
+      params,
+      datasource
+    });
+  }
+  async getDevices(getVirtualModel = false, getHuamiDevices = 0) {
+    const res = await this._callMiIOT("POST", "/home/device_list", {
+      getVirtualModel,
+      getHuamiDevices
+    });
+    return res == null ? undefined : res.list;
+  }
+  async getProperty(scope, property) {
+    var _a, _b;
+    const res = await this._callMiotSpec("prop/get", [
+      {
+        did: this.account.device.did,
+        siid: scope,
+        piid: property
+      }
+    ]);
+    return (_b = (_a = res ?? []) == null ? undefined : _a[0]) == null ? undefined : _b.value;
+  }
+  async setProperty(scope, property, value) {
+    var _a, _b;
+    const res = await this._callMiotSpec("prop/set", [
+      {
+        did: this.account.device.did,
+        siid: scope,
+        piid: property,
+        value
+      }
+    ]);
+    return ((_b = (_a = res ?? []) == null ? undefined : _a[0]) == null ? undefined : _b.code) === 0;
+  }
+  async doAction(scope, action, args = []) {
+    const res = await this._callMiotSpec("action", {
+      did: this.account.device.did,
+      siid: scope,
+      aiid: action,
+      in: Array.isArray(args) ? args : [args]
+    });
+    return (res == null ? undefined : res.code) === 0;
+  }
+};
+
+// src/mi-service-lite/mi/account.ts
+var kLoginAPI = "https://account.xiaomi.com/pass";
+async function getAccount(account) {
+  let res = await Http.get(
+    `${kLoginAPI}/serviceLogin`,
+    { sid: account.sid, _json: true, _locale: "zh_CN" },
+    { cookies: _getLoginCookies(account) }
+  );
+  if (res.isError) {
+    console.error("\u274C \u767B\u5F55\u5931\u8D25", res);
+    return undefined;
+  }
+  let pass = parseAuthPass(res);
+  if (pass.code !== 0) {
+    let data = {
+      _json: "true",
+      qs: pass.qs,
+      sid: account.sid,
+      _sign: pass._sign,
+      callback: pass.callback,
+      user: account.userId,
+      hash: md5(account.password).toUpperCase()
+    };
+    res = await Http.post(`${kLoginAPI}/serviceLoginAuth2`, encodeQuery(data), {
+      cookies: _getLoginCookies(account)
+    });
+    if (res.isError) {
+      console.error("\u274C OAuth2 \u767B\u5F55\u5931\u8D25", res);
+      return undefined;
+    }
+    pass = parseAuthPass(res);
+  }
+  if (!pass.location || !pass.nonce || !pass.passToken) {
+    if (pass.notificationUrl || pass.captchaUrl) {
+      console.log(
+        "\u{1F525} \u89E6\u53D1\u5C0F\u7C73\u8D26\u53F7\u5F02\u5730\u767B\u5F55\u5B89\u5168\u9A8C\u8BC1\u673A\u5236\uFF0C\u8BF7\u5728\u6D4F\u89C8\u5668\u6253\u5F00\u4EE5\u4E0B\u94FE\u63A5\uFF0C\u5E76\u6309\u7167\u7F51\u9875\u63D0\u793A\u6388\u6743\u9A8C\u8BC1\u8D26\u53F7\uFF1A"
+      );
+      console.log("\u{1F449} " + pass.notificationUrl || pass.captchaUrl);
+      console.log(
+        "\u{1F41B} \u6CE8\u610F\uFF1A\u6388\u6743\u6210\u529F\u540E\uFF0C\u5927\u7EA6\u9700\u8981\u7B49\u5F85 1 \u4E2A\u5C0F\u65F6\u5DE6\u53F3\u8D26\u53F7\u4FE1\u606F\u624D\u4F1A\u66F4\u65B0\uFF0C\u8BF7\u5728\u66F4\u65B0\u540E\u518D\u5C1D\u8BD5\u91CD\u65B0\u767B\u5F55\u3002"
+      );
+    }
+    console.error("\u274C \u5C0F\u7C73\u8D26\u53F7\u767B\u5F55\u5931\u8D25", res);
+    return undefined;
+  }
+  const serviceToken = await _getServiceToken(pass);
+  if (!serviceToken) {
+    return undefined;
+  }
+  account = { ...account, pass, serviceToken };
+  if (Debugger.enableTrace) {
+    console.log("\u{1F41B} \u5C0F\u7C73\u8D26\u53F7: ", jsonEncode2(account, { prettier: true }));
+  }
+  account = await MiNA.getDevice(account);
+  if (Debugger.enableTrace) {
+    console.log("\u{1F41B} MiNA \u8D26\u53F7: ", jsonEncode2(account, { prettier: true }));
+  }
+  account = await MiIOT.getDevice(account);
+  if (Debugger.enableTrace) {
+    console.log("\u{1F41B} MiIOT \u8D26\u53F7: ", jsonEncode2(account, { prettier: true }));
+  }
+  if (account.did && !account.device) {
+    console.error("\u274C \u627E\u4E0D\u5230\u8BBE\u5907\uFF1A" + account.did);
+    console.log(
+      "\u{1F41B} \u8BF7\u68C0\u67E5\u4F60\u7684 did \u4E0E\u7C73\u5BB6\u4E2D\u7684\u8BBE\u5907\u540D\u79F0\u662F\u5426\u4E00\u81F4\u3002\u6CE8\u610F\u9519\u522B\u5B57\u3001\u7A7A\u683C\u548C\u5927\u5C0F\u5199\uFF0C\u6BD4\u5982\uFF1A\u97F3\u54CD \u{1F449} \u97F3\u7BB1"
+    );
+    return undefined;
+  }
+  return account;
+}
+function _getLoginCookies(account) {
+  var _a;
+  return {
+    userId: account.userId,
+    deviceId: account.deviceId,
+    passToken: (_a = account.pass) == null ? undefined : _a.passToken
+  };
+}
+async function _getServiceToken(pass) {
+  var _a;
+  const { location, nonce, ssecurity } = pass ?? {};
+  const res = await Http.get(
+    location,
+    {
+      _userIdNeedEncrypt: true,
+      clientSign: sha1(`nonce=${nonce}&${ssecurity}`)
+    },
+    { rawResponse: true }
+  );
+  let cookies = ((_a = res.headers) == null ? undefined : _a["set-cookie"]) ?? [];
+  for (let cookie of cookies) {
+    if (cookie.includes("serviceToken")) {
+      return cookie.split(";")[0].replace("serviceToken=", "");
+    }
+  }
+  console.error("\u274C \u83B7\u53D6 Mi Service Token \u5931\u8D25", res);
+  return undefined;
+}
+
+// src/mi-service-lite/mi/index.ts
+var kConfigFile = ".mi.json";
+async function getMiService(config2) {
+  var _a;
+  const { service, userId, password, did, relogin } = config2;
+  const overrides = relogin ? {} : { did, userId, password };
+  const randomDeviceId = "android_" + uuid();
+  const store = await readJSON(kConfigFile) ?? {};
+  let account = {
+    deviceId: randomDeviceId,
+    ...store[service],
+    ...overrides,
+    sid: service === "miiot" ? "xiaomiio" : "micoapi"
+  };
+  if (!account.userId || !account.password) {
+    console.error("\u274C \u6CA1\u6709\u627E\u5230\u8D26\u53F7\u6216\u5BC6\u7801\uFF0C\u8BF7\u68C0\u67E5\u662F\u5426\u5DF2\u914D\u7F6E\u76F8\u5173\u53C2\u6570\uFF1AuserId, password");
+    return;
+  }
+  account = await getAccount(account);
+  if (!(account == null ? undefined : account.serviceToken) || !((_a = account.pass) == null ? undefined : _a.ssecurity)) {
+    return undefined;
+  }
+  store[service] = account;
+  await writeJSON(kConfigFile, store);
+  return service === "miiot" ? new MiIOT(account) : new MiNA(account);
+}
+
+// src/mi-service-lite/index.ts
+async function getMiIOT(config2) {
+  Debugger.enableTrace = config2.enableTrace;
+  Http.timeout = config2.timeout ?? Http.timeout;
+  return getMiService({ service: "miiot", ...config2 });
+}
+async function getMiNA(config2) {
+  Debugger.enableTrace = config2.enableTrace;
+  Http.timeout = config2.timeout ?? Http.timeout;
+  return getMiService({ service: "mina", ...config2 });
+}
+
 // src/utils/log.ts
 var _LoggerManager = class {
   disable = false;
@@ -242,7 +1093,7 @@ var _LoggerManager = class {
     const date = formatDateTime(/* @__PURE__ */ new Date());
     let prefix = `${date} ${tag} `;
     if (args.length < 1) {
-      args = [void 0];
+      args = [undefined];
     }
     if (isString(args[0])) {
       prefix += args[0];
@@ -391,7 +1242,7 @@ var StreamResponse = class _StreamResponse {
       if (this.status === "finished") {
         return this._finalResult;
       } else if (this.status === "canceled") {
-        return void 0;
+        return undefined;
       }
       await sleep(10);
     }
@@ -431,7 +1282,7 @@ var StreamResponse = class _StreamResponse {
   _addResponse(text, options) {
     this._remainingText += text;
     while (this._remainingText.length > 0) {
-      let lastCutIndex = (options == null ? void 0 : options.force) ? this.maxSentenceLength : this._findLastCutIndex(this._remainingText);
+      let lastCutIndex = (options == null ? undefined : options.force) ? this.maxSentenceLength : this._findLastCutIndex(this._remainingText);
       if (lastCutIndex > 0) {
         const currentChunk = this._remainingText.substring(0, lastCutIndex);
         this._chunks.push(currentChunk);
@@ -623,9 +1474,9 @@ var BaseSpeaker = class {
     } = options ?? {};
     const hasNewMsg = () => {
       var _a2;
-      return (_a2 = options.hasNewMsg) == null ? void 0 : _a2.call(options);
+      return (_a2 = options.hasNewMsg) == null ? undefined : _a2.call(options);
     };
-    const ttsText = (_a = text == null ? void 0 : text.replace(/\n\s*\n/g, "\n")) == null ? void 0 : _a.trim();
+    const ttsText = (_a = text == null ? undefined : text.replace(/\n\s*\n/g, "\n")) == null ? undefined : _a.trim();
     const ttsNotXiaoai = tts !== "xiaoai" && !audio;
     playSFX = this.streamResponse && ttsNotXiaoai && playSFX;
     const play = async (args) => {
@@ -639,7 +1490,7 @@ var BaseSpeaker = class {
       if (ttsNotXiaoai) {
         await this.unWakeUp();
       }
-      if (args == null ? void 0 : args.tts) {
+      if (args == null ? undefined : args.tts) {
         const sentences = args.tts.split(/(?<=[。！？\n])/);
         for (const sentence of sentences) {
           if (sentence.trim()) {
@@ -720,7 +1571,7 @@ var BaseSpeaker = class {
       const resp = await fetch(`${kEnvs.TTS_BASE_URL}/speakers`).catch(
         () => null
       );
-      const res = await (resp == null ? void 0 : resp.json().catch(() => null));
+      const res = await (resp == null ? undefined : resp.json().catch(() => null));
       if (Array.isArray(res)) {
         this._speakers = res;
       }
@@ -790,7 +1641,7 @@ var Speaker = class extends BaseSpeaker {
       if (this.keepAlive) {
         if (!this.responding) {
           if (this.audioSilent) {
-            await ((_a = this.MiNA) == null ? void 0 : _a.play({ url: this.audioSilent }));
+            await ((_a = this.MiNA) == null ? undefined : _a.play({ url: this.audioSilent }));
           } else {
             await this.MiIOT.doAction(...this.ttsCommand, kAreYouOK);
           }
@@ -850,15 +1701,15 @@ var Speaker = class extends BaseSpeaker {
   }
   checkIfHasNewMsg(currentMsg) {
     var _a;
-    const currentTimestamp = (_a = currentMsg ?? this.currentQueryMsg) == null ? void 0 : _a.timestamp;
+    const currentTimestamp = (_a = currentMsg ?? this.currentQueryMsg) == null ? undefined : _a.timestamp;
     return {
       hasNewMsg: () => {
         var _a2;
-        return currentTimestamp !== ((_a2 = this.currentQueryMsg) == null ? void 0 : _a2.timestamp);
+        return currentTimestamp !== ((_a2 = this.currentQueryMsg) == null ? undefined : _a2.timestamp);
       },
       noNewMsg: () => {
         var _a2;
-        return currentTimestamp === ((_a2 = this.currentQueryMsg) == null ? void 0 : _a2.timestamp);
+        return currentTimestamp === ((_a2 = this.currentQueryMsg) == null ? undefined : _a2.timestamp);
       }
     };
   }
@@ -933,15 +1784,15 @@ var Speaker = class extends BaseSpeaker {
   }
   _lastConversation;
   async getMessages(options) {
-    const filterAnswer = (options == null ? void 0 : options.filterAnswer) ?? true;
+    const filterAnswer = (options == null ? undefined : options.filterAnswer) ?? true;
     const conversation = await this.MiNA.getConversations(options);
     this._lastConversation = conversation;
-    let records = (conversation == null ? void 0 : conversation.records) ?? [];
+    let records = (conversation == null ? undefined : conversation.records) ?? [];
     if (filterAnswer) {
       records = records.filter(
         (e) => {
           var _a;
-          return ["TTS", "LLM"].includes((_a = e.answers[0]) == null ? void 0 : _a.type) && // 过滤 TTS 和 LLM 消息
+          return ["TTS", "LLM"].includes((_a = e.answers[0]) == null ? undefined : _a.type) && // 过滤 TTS 和 LLM 消息
           e.answers.length === 1;
         }
         // 播放音乐时会有 TTS、Audio 两个 Answer
@@ -950,7 +1801,7 @@ var Speaker = class extends BaseSpeaker {
     return records.map((e) => {
       var _a, _b, _c, _d;
       const msg = e.answers[0];
-      const answer = ((_b = (_a = msg == null ? void 0 : msg.tts) == null ? void 0 : _a.text) == null ? void 0 : _b.trim()) ?? ((_d = (_c = msg == null ? void 0 : msg.llm) == null ? void 0 : _c.text) == null ? void 0 : _d.trim());
+      const answer = ((_b = (_a = msg == null ? undefined : msg.tts) == null ? undefined : _a.text) == null ? undefined : _b.trim()) ?? ((_d = (_c = msg == null ? undefined : msg.llm) == null ? undefined : _c.text) == null ? undefined : _d.trim());
       return {
         answer,
         text: e.query,
@@ -1073,7 +1924,7 @@ var AISpeaker = class extends Speaker {
     },
     async (msg, data) => {
       var _a;
-      let answer = await ((_a = this.askAI) == null ? void 0 : _a.call(this, msg));
+      let answer = await ((_a = this.askAI) == null ? undefined : _a.call(this, msg));
       return { data: { answer } };
     },
     async (msg, data) => {
@@ -1112,10 +1963,10 @@ var AISpeaker = class extends Speaker {
       if (hasNewMsg() || this.status !== "running") {
         return;
       }
-      if (res == null ? void 0 : res.data) {
+      if (res == null ? undefined : res.data) {
         data = { ...data, ...res.data };
       }
-      if (res == null ? void 0 : res.stop) {
+      if (res == null ? undefined : res.stop) {
         break;
       }
     }
@@ -1209,7 +2060,7 @@ var OpenAIClient = class {
         model,
         tools,
         messages: [...systemMsg, { role: "user", content: user }],
-        response_format: jsonMode ? { type: "json_object" } : void 0
+        response_format: jsonMode ? { type: "json_object" } : undefined
       },
       { signal }
     ).catch((e) => {
@@ -1219,9 +2070,9 @@ var OpenAIClient = class {
     if (requestId) {
       delete this._abortCallbacks[requestId];
     }
-    const message = (_b = (_a = chatCompletion == null ? void 0 : chatCompletion.choices) == null ? void 0 : _a[0]) == null ? void 0 : _b.message;
+    const message = (_b = (_a = chatCompletion == null ? undefined : chatCompletion.choices) == null ? undefined : _a[0]) == null ? undefined : _b.message;
     if (trace && this.traceOutput) {
-      this._logger.log(`\u2705 Answer: ${(message == null ? void 0 : message.content) ?? "None"}`.trim());
+      this._logger.log(`\u2705 Answer: ${(message == null ? undefined : message.content) ?? "None"}`.trim());
     }
     return message;
   }
@@ -1251,7 +2102,7 @@ var OpenAIClient = class {
       tools,
       stream: true,
       messages: [...systemMsg, { role: "user", content: user }],
-      response_format: jsonMode ? { type: "json_object" } : void 0
+      response_format: jsonMode ? { type: "json_object" } : undefined
     }).catch((e) => {
       this._logger.error("LLM \u54CD\u5E94\u5F02\u5E38", e);
       return null;
@@ -1264,14 +2115,14 @@ var OpenAIClient = class {
     }
     let content = "";
     for await (const chunk of stream) {
-      const text = ((_b = (_a = chunk.choices[0]) == null ? void 0 : _a.delta) == null ? void 0 : _b.content) || "";
+      const text = ((_b = (_a = chunk.choices[0]) == null ? undefined : _a.delta) == null ? undefined : _b.content) || "";
       const aborted = requestId && !Object.keys(this._abortCallbacks).includes(requestId);
       if (aborted) {
         content = "";
         break;
       }
       if (text) {
-        onStream == null ? void 0 : onStream(text);
+        onStream == null ? undefined : onStream(text);
         content += text;
       }
     }
@@ -1281,42 +2132,42 @@ var OpenAIClient = class {
     if (trace && this.traceOutput) {
       this._logger.log(`\u2705 Answer: ${content ?? "None"}`.trim());
     }
-    return withDefault(content, void 0);
+    return withDefault(content, undefined);
   }
 };
 var openai = new OpenAIClient();
 process.cwd();
-var exists = (filePath) => fs.existsSync(filePath);
-var readFile = (filePath, options) => {
-  const dirname = path.dirname(filePath);
-  if (!fs.existsSync(dirname)) {
-    return void 0;
+var exists = (filePath) => fs2.existsSync(filePath);
+var readFile3 = (filePath, options) => {
+  const dirname2 = path__default.dirname(filePath);
+  if (!fs2.existsSync(dirname2)) {
+    return undefined;
   }
-  return new Promise((resolve) => {
-    fs.readFile(filePath, options, (err, data) => {
-      resolve(err ? void 0 : data);
+  return new Promise((resolve2) => {
+    fs2.readFile(filePath, options, (err, data) => {
+      resolve2(err ? undefined : data);
     });
   });
 };
-var writeFile = (filePath, data, options) => {
-  const dirname = path.dirname(filePath);
-  if (!fs.existsSync(dirname)) {
-    fs.mkdirSync(dirname, { recursive: true });
+var writeFile3 = (filePath, data, options) => {
+  const dirname2 = path__default.dirname(filePath);
+  if (!fs2.existsSync(dirname2)) {
+    fs2.mkdirSync(dirname2, { recursive: true });
   }
-  return new Promise((resolve) => {
+  return new Promise((resolve2) => {
     {
-      fs.writeFile(filePath, data, options, (err) => {
-        resolve(err ? false : true);
+      fs2.writeFile(filePath, data, options, (err) => {
+        resolve2(err ? false : true);
       });
     }
   });
 };
-var readString = (filePath) => readFile(filePath, "utf8");
-var readJSON = async (filePath) => jsonDecode(await readString(filePath));
-var writeJSON = (filePath, content) => writeFile(filePath, jsonEncode(content) ?? "", "utf8");
+var readString = (filePath) => readFile3(filePath, "utf8");
+var readJSON2 = async (filePath) => jsonDecode(await readString(filePath));
+var writeJSON2 = (filePath, content) => writeFile3(filePath, jsonEncode(content) ?? "", "utf8");
 var deleteFile = (filePath) => {
   try {
-    fs.rmSync(filePath);
+    fs2.rmSync(filePath);
     return true;
   } catch {
     return false;
@@ -1363,7 +2214,7 @@ function runWithDB(main) {
 function getSkipWithCursor(skip, cursorId) {
   return {
     skip: cursorId ? skip + 1 : skip,
-    cursor: cursorId ? { id: cursorId } : void 0
+    cursor: cursorId ? { id: cursorId } : undefined
   };
 }
 function getDBInfo() {
@@ -1394,8 +2245,8 @@ var _MessageCRUD = class {
     return kPrisma.message.count({
       where: {
         id: { gt: cursorId },
-        roomId: room == null ? void 0 : room.id,
-        senderId: sender == null ? void 0 : sender.id
+        roomId: room == null ? undefined : room.id,
+        senderId: sender == null ? undefined : sender.id
       }
     }).catch((e) => {
       kDBLogger.error("get message count failed", e);
@@ -1406,7 +2257,7 @@ var _MessageCRUD = class {
     const { include = { sender: true } } = options ?? {};
     return kPrisma.message.findFirst({ where: { id }, include }).catch((e) => {
       kDBLogger.error("get message failed", id, e);
-      return void 0;
+      return undefined;
     });
   }
   async gets(options) {
@@ -1420,7 +2271,7 @@ var _MessageCRUD = class {
       order = "desc"
     } = options ?? {};
     const messages = await kPrisma.message.findMany({
-      where: removeEmpty({ roomId: room == null ? void 0 : room.id, senderId: sender == null ? void 0 : sender.id }),
+      where: removeEmpty({ roomId: room == null ? undefined : room.id, senderId: sender == null ? undefined : sender.id }),
       take,
       include,
       orderBy: { createdAt: order },
@@ -1433,7 +2284,7 @@ var _MessageCRUD = class {
   }
   async addOrUpdate(message) {
     const { text: _text, roomId, senderId } = message;
-    const text = _text == null ? void 0 : _text.trim();
+    const text = _text == null ? undefined : _text.trim();
     const data = {
       text,
       room: { connect: { id: roomId } },
@@ -1445,7 +2296,7 @@ var _MessageCRUD = class {
       update: data
     }).catch((e) => {
       kDBLogger.error("add message to db failed", message, e);
-      return void 0;
+      return undefined;
     });
   }
 };
@@ -1462,7 +2313,7 @@ var _RoomCRUD = class {
       where: {
         members: {
           some: {
-            id: user == null ? void 0 : user.id
+            id: user == null ? undefined : user.id
           }
         }
       }
@@ -1474,7 +2325,7 @@ var _RoomCRUD = class {
   async get(id, options) {
     return kPrisma.room.findFirst({ where: { id } }).catch((e) => {
       kDBLogger.error("get room failed", id, e);
-      return void 0;
+      return undefined;
     });
   }
   async gets(options) {
@@ -1487,7 +2338,7 @@ var _RoomCRUD = class {
       order = "desc"
     } = options ?? {};
     const rooms = await kPrisma.room.findMany({
-      where: (user == null ? void 0 : user.id) ? { members: { some: { id: user.id } } } : void 0,
+      where: (user == null ? undefined : user.id) ? { members: { some: { id: user.id } } } : undefined,
       take,
       include,
       orderBy: { createdAt: order },
@@ -1507,7 +2358,7 @@ var _RoomCRUD = class {
       update: room
     }).catch((e) => {
       kDBLogger.error("add room to db failed", room, e);
-      return void 0;
+      return undefined;
     });
   }
 };
@@ -1525,7 +2376,7 @@ var _UserCRUD = class {
     const { include = { rooms: false } } = options ?? {};
     return kPrisma.user.findFirst({ where: { id }, include }).catch((e) => {
       kDBLogger.error("get user failed", id, e);
-      return void 0;
+      return undefined;
     });
   }
   async gets(options) {
@@ -1556,7 +2407,7 @@ var _UserCRUD = class {
       update: user
     }).catch((e) => {
       kDBLogger.error("add user to db failed", user, e);
-      return void 0;
+      return undefined;
     });
   }
 };
@@ -1585,7 +2436,7 @@ var _BotConfig = class {
   _indexPath = ".bot.json";
   async _getIndex() {
     if (!this.botIndex) {
-      this.botIndex = await readJSON(this._indexPath);
+      this.botIndex = await readJSON2(this._indexPath);
     }
     return this.botIndex;
   }
@@ -1595,12 +2446,12 @@ var _BotConfig = class {
       const bot2 = await UserCRUD.addOrUpdate(kDefaultBot);
       if (!bot2) {
         this._logger.error("create bot failed");
-        return void 0;
+        return undefined;
       }
       const master2 = await UserCRUD.addOrUpdate(kDefaultMaster);
       if (!master2) {
         this._logger.error("create master failed");
-        return void 0;
+        return undefined;
       }
       const defaultRoomName = `${master2.name}\u548C${bot2.name}\u7684\u79C1\u804A`;
       const room2 = await RoomCRUD.addOrUpdate({
@@ -1610,28 +2461,28 @@ var _BotConfig = class {
       });
       if (!room2) {
         this._logger.error("create room failed");
-        return void 0;
+        return undefined;
       }
       this.botIndex = {
         botId: bot2.id,
         masterId: master2.id
       };
-      await writeJSON(this._indexPath, this.botIndex);
+      await writeJSON2(this._indexPath, this.botIndex);
     }
     const bot = await UserCRUD.get(this.botIndex.botId);
     if (!bot) {
       this._logger.error("find bot failed. \u8BF7\u5220\u9664 .bot.json \u6587\u4EF6\u540E\u91CD\u8BD5\uFF01");
-      return void 0;
+      return undefined;
     }
     const master = await UserCRUD.get(this.botIndex.masterId);
     if (!master) {
       this._logger.error("find master failed");
-      return void 0;
+      return undefined;
     }
     const room = await RoomCRUD.get(getRoomID([bot, master]));
     if (!room) {
       this._logger.error("find room failed");
-      return void 0;
+      return undefined;
     }
     return { bot, master, room };
   }
@@ -1639,7 +2490,7 @@ var _BotConfig = class {
     var _a, _b;
     let currentConfig = await this.get();
     if (!currentConfig) {
-      return void 0;
+      return undefined;
     }
     const oldConfig = deepClone(currentConfig);
     for (const key in currentConfig) {
@@ -1647,17 +2498,17 @@ var _BotConfig = class {
       currentConfig[_key] = {
         ...currentConfig[_key],
         ...removeEmpty(config2[_key]),
-        updatedAt: void 0
+        updatedAt: undefined
         // reset update date
       };
     }
     let { bot, master, room } = currentConfig;
     const newDefaultRoomName = `${master.name}\u548C${bot.name}\u7684\u79C1\u804A`;
     if (room.name.endsWith("\u7684\u79C1\u804A")) {
-      room.name = ((_a = config2.room) == null ? void 0 : _a.name) ?? newDefaultRoomName;
+      room.name = ((_a = config2.room) == null ? undefined : _a.name) ?? newDefaultRoomName;
     }
     if (room.description.endsWith("\u7684\u79C1\u804A")) {
-      room.description = ((_b = config2.room) == null ? void 0 : _b.description) ?? newDefaultRoomName;
+      room.description = ((_b = config2.room) == null ? undefined : _b.description) ?? newDefaultRoomName;
     }
     bot = await UserCRUD.addOrUpdate(bot) ?? oldConfig.bot;
     master = await UserCRUD.addOrUpdate(master) ?? oldConfig.master;
@@ -1674,8 +2525,8 @@ var _MemoryCRUD = class {
     return kPrisma.memory.count({
       where: {
         id: { gt: cursorId },
-        roomId: room == null ? void 0 : room.id,
-        ownerId: owner == null ? void 0 : owner.id
+        roomId: room == null ? undefined : room.id,
+        ownerId: owner == null ? undefined : owner.id
       }
     }).catch((e) => {
       kDBLogger.error("get memory count failed", e);
@@ -1692,7 +2543,7 @@ var _MemoryCRUD = class {
     } = options ?? {};
     return kPrisma.memory.findFirst({ where: { id }, include }).catch((e) => {
       kDBLogger.error("get memory failed", id, e);
-      return void 0;
+      return undefined;
     });
   }
   async gets(options) {
@@ -1710,7 +2561,7 @@ var _MemoryCRUD = class {
       order = "desc"
     } = options ?? {};
     const memories = await kPrisma.memory.findMany({
-      where: removeEmpty({ roomId: room == null ? void 0 : room.id, ownerId: owner == null ? void 0 : owner.id }),
+      where: removeEmpty({ roomId: room == null ? undefined : room.id, ownerId: owner == null ? undefined : owner.id }),
       take,
       include,
       orderBy: { createdAt: order },
@@ -1726,7 +2577,7 @@ var _MemoryCRUD = class {
     const data = {
       msg: { connect: { id: msgId } },
       room: { connect: { id: roomId } },
-      owner: ownerId ? { connect: { id: ownerId } } : void 0
+      owner: ownerId ? { connect: { id: ownerId } } : undefined
     };
     return kPrisma.memory.upsert({
       where: { id: memory.id || k404 },
@@ -1734,7 +2585,7 @@ var _MemoryCRUD = class {
       update: data
     }).catch((e) => {
       kDBLogger.error("add memory to db failed", memory, e);
-      return void 0;
+      return undefined;
     });
   }
 };
@@ -1747,8 +2598,8 @@ var _LongTermMemoryCRUD = class {
     return kPrisma.longTermMemory.count({
       where: {
         id: { gt: cursorId },
-        roomId: room == null ? void 0 : room.id,
-        ownerId: owner == null ? void 0 : owner.id
+        roomId: room == null ? undefined : room.id,
+        ownerId: owner == null ? undefined : owner.id
       }
     }).catch((e) => {
       kDBLogger.error("get longTermMemory count failed", e);
@@ -1758,7 +2609,7 @@ var _LongTermMemoryCRUD = class {
   async get(id) {
     return kPrisma.longTermMemory.findFirst({ where: { id } }).catch((e) => {
       kDBLogger.error("get long term memory failed", id, e);
-      return void 0;
+      return undefined;
     });
   }
   async gets(options) {
@@ -1771,7 +2622,7 @@ var _LongTermMemoryCRUD = class {
       order = "desc"
     } = options ?? {};
     const memories = await kPrisma.longTermMemory.findMany({
-      where: removeEmpty({ roomId: room == null ? void 0 : room.id, ownerId: owner == null ? void 0 : owner.id }),
+      where: removeEmpty({ roomId: room == null ? undefined : room.id, ownerId: owner == null ? undefined : owner.id }),
       take,
       orderBy: { createdAt: order },
       ...getSkipWithCursor(skip, cursorId)
@@ -1783,12 +2634,12 @@ var _LongTermMemoryCRUD = class {
   }
   async addOrUpdate(longTermMemory) {
     const { text: _text, cursorId, roomId, ownerId } = longTermMemory;
-    const text = _text == null ? void 0 : _text.trim();
+    const text = _text == null ? undefined : _text.trim();
     const data = {
       text,
       cursor: { connect: { id: cursorId } },
       room: { connect: { id: roomId } },
-      owner: ownerId ? { connect: { id: ownerId } } : void 0
+      owner: ownerId ? { connect: { id: ownerId } } : undefined
     };
     return kPrisma.longTermMemory.upsert({
       where: { id: longTermMemory.id || k404 },
@@ -1796,7 +2647,7 @@ var _LongTermMemoryCRUD = class {
       update: data
     }).catch((e) => {
       kDBLogger.error("add longTermMemory to db failed", longTermMemory, e);
-      return void 0;
+      return undefined;
     });
   }
 };
@@ -1809,8 +2660,8 @@ var _ShortTermMemoryCRUD = class {
     return kPrisma.shortTermMemory.count({
       where: {
         id: { gt: cursorId },
-        roomId: room == null ? void 0 : room.id,
-        ownerId: owner == null ? void 0 : owner.id
+        roomId: room == null ? undefined : room.id,
+        ownerId: owner == null ? undefined : owner.id
       }
     }).catch((e) => {
       kDBLogger.error("get shortTermMemory count failed", e);
@@ -1820,7 +2671,7 @@ var _ShortTermMemoryCRUD = class {
   async get(id) {
     return kPrisma.shortTermMemory.findFirst({ where: { id } }).catch((e) => {
       kDBLogger.error("get short term memory failed", id, e);
-      return void 0;
+      return undefined;
     });
   }
   async gets(options) {
@@ -1833,7 +2684,7 @@ var _ShortTermMemoryCRUD = class {
       order = "desc"
     } = options ?? {};
     const memories = await kPrisma.shortTermMemory.findMany({
-      where: removeEmpty({ roomId: room == null ? void 0 : room.id, ownerId: owner == null ? void 0 : owner.id }),
+      where: removeEmpty({ roomId: room == null ? undefined : room.id, ownerId: owner == null ? undefined : owner.id }),
       take,
       orderBy: { createdAt: order },
       ...getSkipWithCursor(skip, cursorId)
@@ -1845,12 +2696,12 @@ var _ShortTermMemoryCRUD = class {
   }
   async addOrUpdate(shortTermMemory) {
     const { text: _text, cursorId, roomId, ownerId } = shortTermMemory;
-    const text = _text == null ? void 0 : _text.trim();
+    const text = _text == null ? undefined : _text.trim();
     const data = {
       text,
       cursor: { connect: { id: cursorId } },
       room: { connect: { id: roomId } },
-      owner: ownerId ? { connect: { id: ownerId } } : void 0
+      owner: ownerId ? { connect: { id: ownerId } } : undefined
     };
     return kPrisma.shortTermMemory.upsert({
       where: { id: shortTermMemory.id || k404 },
@@ -1858,7 +2709,7 @@ var _ShortTermMemoryCRUD = class {
       update: data
     }).catch((e) => {
       kDBLogger.error("add shortTermMemory to db failed", shortTermMemory, e);
-      return void 0;
+      return undefined;
     });
   }
 };
@@ -1914,15 +2765,15 @@ var LongTermMemoryAgent = class {
     const { bot, master, memory } = ctx;
     const res = await openai.chat({
       jsonMode: true,
-      requestId: `update-long-memory-${memory == null ? void 0 : memory.id}`,
+      requestId: `update-long-memory-${memory == null ? undefined : memory.id}`,
       user: buildPrompt(userTemplate, {
         masterName: master.name,
         botName: bot.name,
-        longTermMemory: (lastMemory == null ? void 0 : lastMemory.text) ?? "\u6682\u65E0\u957F\u671F\u8BB0\u5FC6",
+        longTermMemory: (lastMemory == null ? undefined : lastMemory.text) ?? "\u6682\u65E0\u957F\u671F\u8BB0\u5FC6",
         shortTermMemory: lastOf(newMemories).text
       })
     });
-    return (_b = (_a = cleanJsonAndDecode(res == null ? void 0 : res.content)) == null ? void 0 : _a.longTermMemories) == null ? void 0 : _b.toString();
+    return (_b = (_a = cleanJsonAndDecode(res == null ? undefined : res.content)) == null ? undefined : _a.longTermMemories) == null ? undefined : _b.toString();
   }
 };
 
@@ -1975,11 +2826,11 @@ var ShortTermMemoryAgent = class {
     const { bot, master, memory } = ctx;
     const res = await openai.chat({
       jsonMode: true,
-      requestId: `update-short-memory-${memory == null ? void 0 : memory.id}`,
+      requestId: `update-short-memory-${memory == null ? undefined : memory.id}`,
       user: buildPrompt(userTemplate2, {
         masterName: master.name,
         botName: bot.name,
-        shortTermMemory: (lastMemory == null ? void 0 : lastMemory.text) ?? "\u6682\u65E0\u77ED\u671F\u8BB0\u5FC6",
+        shortTermMemory: (lastMemory == null ? undefined : lastMemory.text) ?? "\u6682\u65E0\u77ED\u671F\u8BB0\u5FC6",
         messages: newMemories.map(
           (e) => formatMsg({
             name: e.msg.sender.name,
@@ -1989,7 +2840,7 @@ var ShortTermMemoryAgent = class {
         ).join("\n")
       })
     });
-    return (_b = (_a = cleanJsonAndDecode(res == null ? void 0 : res.content)) == null ? void 0 : _a.shortTermMemories) == null ? void 0 : _b.toString();
+    return (_b = (_a = cleanJsonAndDecode(res == null ? undefined : res.content)) == null ? undefined : _a.shortTermMemories) == null ? undefined : _b.toString();
   }
 };
 
@@ -2064,7 +2915,7 @@ var MemoryManager = class {
     const { threshold = 10 } = options;
     const lastMemory = firstOf(await this.getShortTermMemories({ take: 1 }));
     const newMemories = await MemoryCRUD.gets({
-      cursorId: lastMemory == null ? void 0 : lastMemory.cursorId,
+      cursorId: lastMemory == null ? undefined : lastMemory.cursorId,
       room: this.room,
       owner: this.owner,
       order: "asc"
@@ -2084,7 +2935,7 @@ var MemoryManager = class {
     const res = await ShortTermMemoryCRUD.addOrUpdate({
       text: newMemory,
       roomId: this.room.id,
-      ownerId: (_a = this.owner) == null ? void 0 : _a.id,
+      ownerId: (_a = this.owner) == null ? undefined : _a.id,
       cursorId: lastOf(newMemories).id
     });
     return res != null;
@@ -2094,7 +2945,7 @@ var MemoryManager = class {
     const { threshold = 10 } = options;
     const lastMemory = firstOf(await this.getLongTermMemories({ take: 1 }));
     const newMemories = await ShortTermMemoryCRUD.gets({
-      cursorId: lastMemory == null ? void 0 : lastMemory.cursorId,
+      cursorId: lastMemory == null ? undefined : lastMemory.cursorId,
       room: this.room,
       owner: this.owner,
       order: "asc"
@@ -2114,7 +2965,7 @@ var MemoryManager = class {
     const res = await LongTermMemoryCRUD.addOrUpdate({
       text: newMemory,
       roomId: this.room.id,
-      ownerId: (_a = this.owner) == null ? void 0 : _a.id,
+      ownerId: (_a = this.owner) == null ? undefined : _a.id,
       cursorId: lastOf(newMemories).id
     });
     return res != null;
@@ -2162,7 +3013,7 @@ var ConversationManager = class {
         createdAt: new Date(timestamp)
       });
       if (message) {
-        memory == null ? void 0 : memory.addMessage2Memory(ctx, message);
+        memory == null ? undefined : memory.addMessage2Memory(ctx, message);
         return message;
       }
     }
@@ -2249,7 +3100,7 @@ var MyBot = class _MyBot {
           bot: { name, profile }
         });
         if (config3) {
-          this.speaker.name = config3 == null ? void 0 : config3.bot.name;
+          this.speaker.name = config3 == null ? undefined : config3.bot.name;
           await this.speaker.response({
             text: `\u4F60\u597D\uFF0C\u6211\u662F${name}\uFF0C\u5F88\u9AD8\u5174\u8BA4\u8BC6\u4F60\uFF01`,
             keepAlive: this.speaker.keepAlive
@@ -2272,7 +3123,7 @@ var MyBot = class _MyBot {
           bot: { name, profile }
         });
         if (config3) {
-          this.speaker.name = config3 == null ? void 0 : config3.bot.name;
+          this.speaker.name = config3 == null ? undefined : config3.bot.name;
           await this.speaker.response({
             text: `\u597D\u7684\uFF0C\u6211\u8BB0\u4F4F\u4E86\uFF01`,
             keepAlive: this.speaker.keepAlive
@@ -2306,9 +3157,9 @@ var MyBot = class _MyBot {
     const ctx = { bot, master, room };
     const lastMessages = await this.manager.getMessages({ take: 10 });
     const shortTermMemories = await memory.getShortTermMemories({ take: 1 });
-    const shortTermMemory = ((_a = shortTermMemories[0]) == null ? void 0 : _a.text) ?? "\u77ED\u671F\u8BB0\u5FC6\u4E3A\u7A7A";
+    const shortTermMemory = ((_a = shortTermMemories[0]) == null ? undefined : _a.text) ?? "\u77ED\u671F\u8BB0\u5FC6\u4E3A\u7A7A";
     const longTermMemories = await memory.getLongTermMemories({ take: 1 });
-    const longTermMemory = ((_b = longTermMemories[0]) == null ? void 0 : _b.text) ?? "\u957F\u671F\u8BB0\u5FC6\u4E3A\u7A7A";
+    const longTermMemory = ((_b = longTermMemories[0]) == null ? undefined : _b.text) ?? "\u957F\u671F\u8BB0\u5FC6\u4E3A\u7A7A";
     const systemPrompt = buildPrompt(
       this.systemTemplate ?? kDefaultSystemTemplate,
       {
@@ -2369,7 +3220,7 @@ var MyBot = class _MyBot {
       var _a;
       if (answer) {
         stream.finish(answer);
-        (_a = options.onFinished) == null ? void 0 : _a.call(options, answer);
+        (_a = options.onFinished) == null ? undefined : _a.call(options, answer);
       } else {
         stream.finish(answer);
         stream.cancel();

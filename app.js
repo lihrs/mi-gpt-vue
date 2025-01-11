@@ -1,4 +1,3 @@
-import config from "./migpt.js";
 import {MiGPT} from "./dist/index.cjs";
 import fs, {readFileSync} from 'fs';
 import express from 'express';

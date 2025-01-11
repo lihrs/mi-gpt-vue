@@ -4,7 +4,7 @@ import {
   MiServiceConfig,
   getMiIOT,
   getMiNA,
-} from "mi-service-lite";
+} from "../../mi-service-lite";
 import {clamp, sleep} from "../../utils/base";
 import {jsonEncode} from "../../utils/parse";
 import {Logger} from "../../utils/log";
