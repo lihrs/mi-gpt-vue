@@ -1675,6 +1675,7 @@ var Speaker = class extends BaseSpeaker {
     const { noNewMsg } = this.checkIfHasNewMsg(msg);
     for (const command of this.commands) {
       if (command.match(msg)) {
+        await this.MiNA.pause();
         const answer = await command.run(msg);
         if (answer) {
           if (noNewMsg() && this.status === "running") {

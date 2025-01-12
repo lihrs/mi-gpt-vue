@@ -24,7 +24,8 @@
   ],
   "scripts": {
     "install-deps": "pnpm install && cd frontend && pnpm install",
-    "build": "npx -y prisma generate && rm -rf dist && tsup --watch",
+    "dev": "tsup --watch",
+    "build": "npx -y prisma generate && rm -rf dist && tsup",
     "start": "node app.js"
   },
   "dependencies": {

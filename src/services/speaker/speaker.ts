@@ -130,7 +130,9 @@ export class Speaker extends BaseSpeaker {
   async onMessage(msg: QueryMessage) {
     const { noNewMsg } = this.checkIfHasNewMsg(msg);
     for (const command of this.commands) {
-      if (command.match(msg)) {
+      if (command.match(msg)) {//说明包含关键字，会调用AI
+        // 关闭小爱自己的回复
+        await this.MiNA!.pause();
         // 执行命令
         const answer = await command.run(msg);
         // 回复用户
