@@ -130,9 +130,6 @@ export class Speaker extends BaseSpeaker {
   async onMessage(msg: QueryMessage) {
     const { noNewMsg } = this.checkIfHasNewMsg(msg);
     for (const command of this.commands) {
-      // 关闭小爱的回复
-      await this.MiNA!.pause();
-      await this.MiNA!.pause();
       if (command.match(msg)) {
         // 执行命令
         const answer = await command.run(msg);
