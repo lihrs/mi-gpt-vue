@@ -10,7 +10,6 @@ body {
 .config-page {
   min-height: 100vh;
   padding: 10px;
-  background: #f0f8ff;
 }
 
 .config-card {
@@ -98,7 +97,7 @@ body {
 
 .el-form-item {
   margin-bottom: 20px;
-  padding-right: 15px;
+  margin-right: 0px!important;
 }
 
 .form-tip {
@@ -284,9 +283,6 @@ body {
     padding: 0 15px;
   }
 
-  .el-form-item {
-    padding-right: 30px;
-  }
 }
 
 .config-page {
@@ -427,10 +423,6 @@ body {
 
   .el-collapse-item__content {
     padding: 15px;
-  }
-
-  .el-form-item {
-    margin-bottom: 20px;
   }
 
   .command-group {
