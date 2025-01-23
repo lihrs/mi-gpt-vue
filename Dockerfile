@@ -7,15 +7,9 @@ FROM node:20.14.0-alpine as env-amd64
 # ENV PRISMA_QUERY_ENGINE_LIBRARY=/app/prisma/engines/libquery_engine.so.node
 # ENV PRISMA_SCHEMA_ENGINE_BINARY=/app/prisma/engines/schema-engine
 
-# 添加时区环境变量，亚洲，上海
-ENV TimeZone=Asia/Shanghai
-
 FROM env-amd64 as base
 WORKDIR /app
 ARG TARGETARCH
-
-# 使用软连接，并且将时区配置覆盖/etc/timezone
-RUN ln -snf /usr/share/zoneinfo/$TimeZone /etc/localtime && echo $TimeZone > /etc/timezone
 
 FROM base as runtime
 COPY . .
