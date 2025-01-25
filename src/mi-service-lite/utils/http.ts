@@ -152,7 +152,9 @@ class TokenRefresher {
       if (Debugger.enableTrace) {
         console.log(`❌ 登录凭证已过期，正在尝试刷新 Token ${i + 1}`);
       }
+      console.log(JSON.stringify(err))
       newServiceAccount = await this.refreshToken(err);
+      console.log(newServiceAccount)
       if (newServiceAccount) {
         // 刷新成功，重新请求
         result = await this.retry(err, newServiceAccount);
@@ -176,6 +178,8 @@ class TokenRefresher {
     const account: any = (
       await getMiService({ service: isMina ? "mina" : "miiot", relogin: true })
     )?.account;
+    console.log(account)
+    console.log('account---------------')
     if (account && err.config.account) {
       // 更新登录凭证
       for (const key in account) {
