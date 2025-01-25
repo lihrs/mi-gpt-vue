@@ -175,9 +175,14 @@ class TokenRefresher {
    */
   async refreshToken(err: any) {
     const isMina = err?.config?.url?.includes("mina.mi.com");
-    const account: any = (
-      await getMiService({ service: isMina ? "mina" : "miiot", relogin: true })
-    )?.account;
+    const getRes:any = await getMiService({ service: isMina ? "mina" : "miiot", relogin: true })
+    console.log(JSON.stringify(getRes))
+    if (getRes.status !== 1) {
+      console.error(getRes.msg);
+      return null
+    }
+
+    const account: any = getRes.data?.account;
     console.log(account)
     console.log('account---------------')
     if (account && err.config.account) {
