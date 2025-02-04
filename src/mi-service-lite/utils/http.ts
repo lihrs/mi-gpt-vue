@@ -154,7 +154,6 @@ class TokenRefresher {
       }
       console.log(JSON.stringify(err))
       newServiceAccount = await this.refreshToken(err);
-      console.log(newServiceAccount)
       if (newServiceAccount) {
         // 刷新成功，重新请求
         result = await this.retry(err, newServiceAccount);
@@ -176,15 +175,14 @@ class TokenRefresher {
   async refreshToken(err: any) {
     const isMina = err?.config?.url?.includes("mina.mi.com");
     const getRes:any = await getMiService({ service: isMina ? "mina" : "miiot", relogin: true })
-    console.log(JSON.stringify(getRes))
     if (getRes.status !== 1) {
       console.error(getRes.msg);
       return null
     }
 
     const account: any = getRes.data?.account;
-    console.log(account)
     console.log('account---------------')
+    console.log(JSON.stringify(account))
     if (account && err.config.account) {
       // 更新登录凭证
       for (const key in account) {
