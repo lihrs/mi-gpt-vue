@@ -19,4 +19,8 @@ export const kEnvs: Partial<{
   AUDIO_ACTIVE:string;
   AUDIO_ERROR:string;
   TTS_BASE_URL:string;
-}> = config as any;
+  QWEN_ENABLE_SEARCH: boolean;
+}> = {
+  ...config,
+  QWEN_ENABLE_SEARCH: config.QWEN_ENABLE_SEARCH === 'true'
+} as any;
