@@ -90,9 +90,9 @@ export default {
     "model": "ep-20241129085411-rczvl"
   },
   "custom": {
-    "apiKey": "sk-U5vko6vwpPwOjNxN9997Bc4cCdC142FdA555547eC8A74dA3",
+    "apiKey": "sk-o29NUpmindj1i5hMCf50A4F4F667413196B4263e5dA78e27",
     "model": "SparkDesk",
-    "endpoint": "http://192.168.9.113:11330/v1"
+    "endpoint": "http://192.168.9.110:11030/v1"
   },
   "tts": {
     "baseUrl": "https://your-azure-endpoint/tts"
