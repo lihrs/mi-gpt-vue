@@ -253,7 +253,7 @@ app.post('/api/admin/config', async (req, res) => {
 
     // 写入到 migpt.js 配置文件
     await fs.promises.writeFile('./migpt.js', configContent, 'utf8');
-    await fs.promises.writeFile('./.migpt.example.js', configContent, 'utf8');
+    //await fs.promises.writeFile('./.migpt.example.js', configContent, 'utf8');
 
     // 获取当前选中的 AI 服务配置
     // const selectedService = Object.keys(config).find(key =>
