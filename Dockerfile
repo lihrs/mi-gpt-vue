@@ -32,7 +32,7 @@ RUN ln -snf /usr/share/zoneinfo/$TimeZone /etc/localtime && echo $TimeZone > /et
 COPY app.js .
 COPY package.json .
 COPY migpt.js .
-COPY env.yml .
+COPY .migpt.example.js .
 COPY frontend/dist ./frontend/dist
 
 COPY --from=dist /app/dist ./dist

@@ -4,7 +4,6 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import path from 'path';
 import {fileURLToPath} from 'url';
-import {exec} from 'child_process';
 import {createServer} from 'net';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -17,7 +16,11 @@ app.use(express.urlencoded({extended: true}));
 
 let miGPTInstance = null;
 
-// 解析配置字符串的函数
+/**
+ * 解析配置字符串的函数
+ * @param {string} configStr 配置字符串
+ * @returns {Object} 解析后的配置对象
+ */
 const parseConfig = (configStr) => {
   try {
     // 移除 export default 和结尾的分号
@@ -42,164 +45,11 @@ const parseConfig = (configStr) => {
   }
 }
 
-// 重载配置的函数
-const reloadMiGPTConfig = async (newConfig) => {
-  try {
-    if (!miGPTInstance) {
-      throw new Error('MiGPT 服务未启动');
-    }
-
-    console.log('\n=== 正在更新 MiGPT 配置 ===');
-
-    // 验证新配置
-    if (!newConfig.speaker?.userId || !newConfig.speaker?.password) {
-      throw new Error('配置验证失败: 缺少必要的配置项');
-    }
-
-    // 停止当前实例
-    await miGPTInstance.stop();
-
-    // 使用新配置创建新实例
-    miGPTInstance = MiGPT.create(newConfig);
-
-    // 启动新实例
-    await miGPTInstance.start();
-
-    console.log('配置信息:', {
-      botName: newConfig.bot?.name,
-      masterName: newConfig.master?.name,
-      did: newConfig.speaker?.did
-    });
-
-    console.log('配置更新成功');
-    console.log('========================\n');
-
-    return true;
-  } catch (error) {
-    console.error('\n=== 更新配置失败 ===');
-    console.error('错误信息:', error.message);
-    console.error('========================\n');
-    throw error;
-  }
-}
-
-// 初始化 MiGPT 实例
-const initMiGPT = async () => {
-  try {
-    console.log('正在初始化 MiGPT 服务...');
-    console.log('当前实例状态:', miGPTInstance ? '存在' : '不存在');
-
-    // 1. 如果存在旧实例，先完全清理
-    if (miGPTInstance) {
-      console.log('清理旧实例...');
-      try {
-        await miGPTInstance.stop();
-        console.log('实例已停止');
-      } catch (error) {
-        console.error('清理旧实例时出错:', error);
-      }
-      miGPTInstance = null;
-      console.log('等待资源释放...');
-      await new Promise(resolve => setTimeout(resolve, 3000));
-    }
-
-    // 2. 读取最新配置
-    console.log('读取配置...');
-    const configFile = fs.readFileSync('./migpt.js', 'utf8');
-    const configModule = await import(`data:text/javascript,${encodeURIComponent(configFile)}`);
-    const freshConfig = configModule.default;
-
-    // 3. 检查配置
-    if (!freshConfig.speaker?.userId || !freshConfig.speaker?.password) {
-      console.log('\n=== 等待配置 ===');
-      console.log('请通过Web界面完成配置');
-      console.log('================\n');
-      return null;
-    }
-
-    // 4. 创建新实例
-    console.log('创建新实例...');
-    try {
-      const instance = MiGPT.create(freshConfig);
-
-      if (!instance) {
-        throw new Error('MiGPT.create() 返回 null');
-      }
-
-      // 验证实例
-      if (!instance.speaker) {
-        throw new Error('实例缺少 speaker 组件');
-      }
-
-      // 5. 赋值给全局变量
-      miGPTInstance = instance;
-      console.log('新实例创建成功');
-    } catch (error) {
-      console.error('实例创建失败:', error);
-      console.error('错误堆栈:', error.stack);
-      throw error;
-    }
-
-    // 6. 启动服务
-    console.log('启动服务...');
-    try {
-      // 启动运行循环
-      if (miGPTInstance.speaker) {
-        console.log('启动消息监听...');
-        // 初始化服务
-        await miGPTInstance.speaker.initMiServices();
-
-        if (!miGPTInstance.speaker.MiNA) {
-          throw new Error('MiNA 服务初始化失败');
-        }
-
-        // 启动服务（不等待完成）
-        miGPTInstance.start().catch(error => {
-          console.error('消息监听循环出错:', error);
-        });
-
-        // 等待一小段时间确保服务正常启动
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        // 检查服务状态
-        if (miGPTInstance.speaker.status !== 'running') {
-          throw new Error('服务启动异常');
-        }
-
-        console.log('消息监听已启动');
-      } else {
-        throw new Error('Speaker 组件未初始化');
-      }
-
-    } catch (error) {
-      console.error('启动服务时出错:', error);
-      // 清理未完全初始化的实例
-      if (miGPTInstance) {
-        try {
-          await miGPTInstance.stop();
-        } catch (stopError) {
-          console.error('清理失败的实例时出错:', stopError);
-        }
-        miGPTInstance = null;
-      }
-      throw new Error(error.message);
-    }
-    console.log('服务启动成功');
-
-    console.log('MiGPT 服务初始化完成');
-    return miGPTInstance;
-  } catch (error) {
-    console.error('初始化失败:', error);
-    console.error('错误堆栈:', error.stack);
-    miGPTInstance = null;
-    throw error;
-  }
-}
-
 /**
  * 删除.bot.json和.mi.json
- */
+*/
 const deleteBotAndMiFile = () => {
+  //删除.bot.json
   const botJsonPath = './.bot.json'
   console.log(`检查${botJsonPath}`)
   if (fs.existsSync(botJsonPath)) {
@@ -207,6 +57,7 @@ const deleteBotAndMiFile = () => {
     // 文件存在，删除文件
     fs.unlinkSync(botJsonPath);
   }
+  //删除.mi.json
   const miJsonPath = './.mi.json'
   console.log(`检查${miJsonPath}`)
   if (fs.existsSync(miJsonPath)) {
@@ -216,7 +67,11 @@ const deleteBotAndMiFile = () => {
   }
 }
 
-// 递归地更新 parsedConfig 中的值
+/**
+ * 递归地更新 parsedConfig 中的值
+ * @param {Object} parsedConfig 解析后的配置对象
+ * @param {Object} config 新的配置对象
+ */
 const updateConfig = (parsedConfig, config) => {
   for (const key in config) {
     if (config.hasOwnProperty(key)) {
@@ -232,19 +87,43 @@ const updateConfig = (parsedConfig, config) => {
   }
 }
 
-//管理端 配置config
+/**
+ * 读取并解析配置文件
+ * @param {string} filePath 配置文件路径
+ * @returns {Promise<Object>} 解析后的配置对象
+ */
+const readConfigFile = async (filePath) => {
+  const configContent = await fs.promises.readFile(filePath, 'utf8');
+  if (!configContent) {
+    throw new Error('配置文件为空');
+  }
+  return parseConfig(configContent);
+};
+
+/**
+ * 读取并解析配置文件
+ * @param {string} filePath 配置文件路径
+ * @returns {Promise<Object>} 解析后的配置对象
+ */
+const readAndParseConfig = async (filePath) => {
+  // 如果配置文件不存在，则创建一个示例配置文件
+  if (!fs.existsSync(filePath)) {
+    const exampleConfig = await fs.promises.readFile('.migpt.example.js', 'utf8');
+    await fs.promises.writeFile(filePath, exampleConfig, 'utf8');
+  }
+  return readConfigFile(filePath);
+};
+
+/**
+ * 管理端 配置config
+ * @param {Object} req 请求对象
+ * @param {Object} res 响应对象
+ */
 app.post('/api/admin/config', async (req, res) => {
   try {
     const config = req.body;
     // 读取配置文件
-    const migptConfig = await fs.promises.readFile('./migpt.js', 'utf8');
-    if (!migptConfig) {
-      throw new Error('配文件为空');
-    }
-    const configStr = migptConfig.replace(/export\s+default\s+/, "")
-      .replace(/;$/, "")
-      .trim();
-    const parsedConfig = JSON.parse(configStr);
+    const parsedConfig = await readConfigFile('./migpt.js');
     // 使用 config 中的值更新 parsedConfig
     updateConfig(parsedConfig, config);
 
@@ -253,40 +132,6 @@ app.post('/api/admin/config', async (req, res) => {
 
     // 写入到 migpt.js 配置文件
     await fs.promises.writeFile('./migpt.js', configContent, 'utf8');
-    //await fs.promises.writeFile('./.migpt.example.js', configContent, 'utf8');
-
-    // 获取当前选中的 AI 服务配置
-    // const selectedService = Object.keys(config).find(key =>
-    //   ['openai', 'azure', 'zhipu', 'tongyi', 'doubao', 'custom'].includes(key) &&
-    //   config[key]?.apiKey &&
-    //   config[key]?.model &&
-    //   config[key]?.endpoint
-    // );
-
-    // 构建 env.yml 内容
-    const envLines = [];
-
-    // 如果有选中的 AI 服务配置，添加到 env.yml 文件
-    if (config['selectedAIService']) {
-      const serviceConfig = config[config['selectedAIService']];
-      envLines.push(
-        `OPENAI_API_KEY: ${serviceConfig.apiKey}`,
-        `OPENAI_MODEL: ${serviceConfig.model}`,
-        `OPENAI_BASE_URL: ${serviceConfig.endpoint.replace('/chat/completions', '')}`
-      );
-    }
-
-    // 如果使用自定义 TTS，添加 TTS 配置到 env.yml 文件
-    if (config.speaker?.tts === 'custom' && config.tts?.baseUrl) {
-      envLines.push(`TTS_BASE_URL: ${config.tts.baseUrl}`);
-    }
-
-    // 确保有内容才写入文件
-    if (envLines.length > 0) {
-      const envContent = envLines.join('\n');
-      await fs.promises.writeFile('env.yml', envContent, 'utf8');
-      console.log('env.yml 文件已更新');
-    }
 
     // 如果服务正在运行，需要重启才能生效
     const needRestart = miGPTInstance !== null;
@@ -294,7 +139,7 @@ app.post('/api/admin/config', async (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     res.json({
       success: true,
-      message: '配置已保存',
+      message: '配置已保存,需要重启服务',
       needRestart
     });
   } catch (error) {
@@ -306,24 +151,8 @@ app.post('/api/admin/config', async (req, res) => {
 });
 app.get('/api/admin/config', async (req, res) => {
   try {
-    // 检查配置文件是否存在
-    if (!fs.existsSync('./migpt.js')) {
-      // 如果不存在，尝试复制示例配置
-      const exampleConfig = await fs.promises.readFile('.migpt.example.js', 'utf8');
-      await fs.promises.writeFile('./migpt.js', exampleConfig, 'utf8');
-      //console.log('已创建默认配置文件');
-    }
-
-    // 读取配置文件
-    const config = await fs.promises.readFile('./migpt.js', 'utf8');
-    if (!config) {
-      throw new Error('配文件为空');
-    }
-    const configStr = config.replace(/export\s+default\s+/, "")
-      .replace(/;$/, "")
-      .trim();
-    const parsedConfig = JSON.parse(configStr);
-    // console.log('读取到的配置:', config); // 添加调试日志
+    const parsedConfig = await readAndParseConfig('./migpt.js');
+    //console.log('读取到的配置:', parsedConfig); // 添加调试日志
 
     res.setHeader('Content-Type', 'application/json');
     res.json({parsedConfig});
@@ -338,20 +167,17 @@ app.get('/api/admin/config', async (req, res) => {
   }
 });
 
-// 配置相路由
+/**
+ * 配置相路由 客户端
+ * @param {Object} req 请求对象
+ * @param {Object} res 响应对象
+ */
 app.post('/api/config', async (req, res) => {
   try {
     const config = req.body;
 
     // 读取配置文件
-    const migptConfig = await fs.promises.readFile('./migpt.js', 'utf8');
-    if (!migptConfig) {
-      throw new Error('配文件为空');
-    }
-    const configStr = migptConfig.replace(/export\s+default\s+/, "")
-      .replace(/;$/, "")
-      .trim();
-    const parsedConfig = JSON.parse(configStr);
+    const parsedConfig = await readConfigFile('./migpt.js');
     // 使用 config 中的值更新 parsedConfig
     updateConfig(parsedConfig, config);
 
@@ -360,40 +186,6 @@ app.post('/api/config', async (req, res) => {
 
     // 写入到 migpt.js 配置文件
     await fs.promises.writeFile('./migpt.js', configContent, 'utf8');
-    //await fs.promises.writeFile('./.migpt.example.js', configContent, 'utf8');
-
-    // 获取当前选中的 AI 服务配置
-    // const selectedService = Object.keys(config).find(key =>
-    //   ['openai', 'azure', 'zhipu', 'tongyi', 'doubao', 'custom'].includes(key) &&
-    //   config[key]?.apiKey &&
-    //   config[key]?.model &&
-    //   config[key]?.endpoint
-    // );
-
-    // 构建 env.yml 内容
-    const envLines = [];
-
-    // 如果有选中的 AI 服务配置，添加到 env.yml 文件
-    if (config['selectedAIService']) {
-      const serviceConfig = config[config['selectedAIService']];
-      envLines.push(
-        `OPENAI_API_KEY: ${serviceConfig.apiKey}`,
-        `OPENAI_MODEL: ${serviceConfig.model}`,
-        `OPENAI_BASE_URL: ${serviceConfig.endpoint.replace('/chat/completions', '')}`
-      );
-    }
-
-    // 如果使用自定义 TTS，添加 TTS 配置到 env.yml 文件
-    if (config.speaker?.tts === 'custom' && config.tts?.baseUrl) {
-      envLines.push(`TTS_BASE_URL: ${config.tts.baseUrl}`);
-    }
-
-    // 确保有内容才写入文件
-    if (envLines.length > 0) {
-      const envContent = envLines.join('\n');
-      await fs.promises.writeFile('env.yml', envContent, 'utf8');
-      console.log('env.yml 文件已更新');
-    }
 
     // 如果服务正在运行，需要重启才能生效
     const needRestart = miGPTInstance !== null;
@@ -401,7 +193,7 @@ app.post('/api/config', async (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     res.json({
       success: true,
-      message: '配置已保存',
+      message: '配置已保存,需要重启服务',
       needRestart
     });
   } catch (error) {
@@ -413,23 +205,7 @@ app.post('/api/config', async (req, res) => {
 });
 app.get('/api/config', async (req, res) => {
   try {
-    // 检查配置文件是否存在
-    if (!fs.existsSync('./migpt.js')) {
-      // 如果不存在，尝试复制示例配置
-      const exampleConfig = await fs.promises.readFile('.migpt.example.js', 'utf8');
-      await fs.promises.writeFile('./migpt.js', exampleConfig, 'utf8');
-      //console.log('已创建默认配置文件');
-    }
-
-    // 读取配置文件
-    const config = await fs.promises.readFile('./migpt.js', 'utf8');
-    if (!config) {
-      throw new Error('配文件为空');
-    }
-    const configStr = config.replace(/export\s+default\s+/, "")
-      .replace(/;$/, "")
-      .trim();
-    const parsedConfig = JSON.parse(configStr);
+    const parsedConfig = await readAndParseConfig('./migpt.js');
     const newConfig = {
       bot: parsedConfig['bot'],
       master: parsedConfig['master'],
@@ -452,36 +228,10 @@ app.get('/api/config', async (req, res) => {
   }
 });
 
-
-app.get('/api/config/example', async (req, res) => {
-  try {
-    // 检查示例配置文件是否存在
-    if (!fs.existsSync('.migpt.example.js')) {
-      throw new Error('示例配置文件不存在');
-    }
-
-    // 读取示例配置文件
-    const config = await fs.promises.readFile('.migpt.example.js', 'utf8');
-
-    if (!config) {
-      throw new Error('示例配置文件为空');
-    }
-
-    //console.log('读取的示例配置:', config); // 添加调试日志
-
-    res.setHeader('Content-Type', 'application/json');
-    res.json({config});
-  } catch (error) {
-    console.error('读取示例配置失败:', error);
-    res.status(500).json({
-      error: '读取示例配置失败',
-      details: error.message,
-      stack: error.stack
-    });
-  }
-});
-
-//服务健康检查
+/**
+ * 服务健康检查
+ * @returns {Promise<Object>} 健康检查状态
+ */
 app.get('/api/service/health', (req, res) => {
   res.setHeader('Content-Type', 'application/json');
 
@@ -522,21 +272,161 @@ app.get('/api/service/health', (req, res) => {
   }
 });
 
-//服务启动
+
+/**
+ * 初始化 MiGPT 实例
+ * @returns {Promise<Object>} MiGPT 实例
+ */
+const initMiGPT = async () => {
+  try {
+    //删除配置文件
+    deleteBotAndMiFile()
+
+    console.log('正在初始化 MiGPT 服务...');
+    console.log('当前实例状态:', miGPTInstance ? '存在' : '不存在');
+
+    // 1. 如果存在旧实例，先完全清理
+    if (miGPTInstance) {
+      console.log('清理旧实例...');
+      try {
+        await miGPTInstance.stop();
+        console.log('实例已停止');
+      } catch (error) {
+        console.error('清理旧实例时出错:', error);
+      }
+      miGPTInstance = null;
+      console.log('等待资源释放...');
+      await new Promise(resolve => setTimeout(resolve, 3000));
+    }
+
+    // 2. 读取最新配置
+    console.log('读取配置...');
+    const configFile = fs.readFileSync('./migpt.js', 'utf8');
+    const configModule = await import(`data:text/javascript,${encodeURIComponent(configFile)}`);
+    const freshConfig = configModule.default;
+
+    // 3. 检查配置
+    if (!freshConfig.speaker?.userId || !freshConfig.speaker?.password) {
+      console.log('\n=== 等待配置 ===');
+      console.log('请通过Web界面完成配置');
+      console.log('================\n');
+      return null;
+    }
+
+    let envLines = {};
+     // 4. 设置环境变量值
+    if (freshConfig['selectedAIService']) {
+      const selectedAIServiceConfig = freshConfig[freshConfig['selectedAIService']];
+      envLines = {
+        OPENAI_API_KEY: selectedAIServiceConfig.apiKey,
+        OPENAI_MODEL: selectedAIServiceConfig.model,
+        OPENAI_BASE_URL: selectedAIServiceConfig.endpoint.replace('/chat/completions', '')
+      }
+    }
+     // 如果使用自定义 TTS，添加 TTS 配置到环境变量
+     if (freshConfig.speaker?.tts === 'custom' && freshConfig.tts?.baseUrl) {
+      envLines['TTS_BASE_URL'] = freshConfig.tts.baseUrl;
+    }
+    process.env = envLines;
+
+     console.log(11111)
+     console.log(process.env)
+
+
+    // 5. 创建新实例
+    console.log('创建新实例...');
+    try {
+      const instance = MiGPT.create(freshConfig);
+
+      if (!instance) {
+        throw new Error('MiGPT.create() 返回 null');
+      }
+
+      // 验证实例
+      if (!instance.speaker) {
+        throw new Error('实例缺少 speaker 组件');
+      }
+
+      // 6. 赋值给全局变量
+      miGPTInstance = instance;
+      console.log('新实例创建成功');
+    } catch (error) {
+      console.error('实例创建失败:', error);
+      console.error('错误堆栈:', error.stack);
+      throw error;
+    }
+
+    // 7. 启动服务
+    console.log('启动服务...');
+    try {
+      // 启动运行循环
+      if (miGPTInstance.speaker) {
+        console.log('启动消息监听...');
+        // 初始化服务
+        await miGPTInstance.speaker.initMiServices();
+
+        if (!miGPTInstance.speaker.MiNA) {
+          throw new Error('MiNA 服务初始化失败');
+        }
+
+        // 启动服务（不等待完成）
+        miGPTInstance.start().catch(error => {
+          console.error('消息监听循环出错:', error);
+        });
+
+        // 等待一小段时间确保服务正常启动
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // 检查服务状态
+        if (miGPTInstance.speaker.status !== 'running') {
+          throw new Error('服务启动异常');
+        }
+
+        console.log('消息监听已启动');
+      } else {
+        throw new Error('Speaker 组件未初始化');
+      }
+    } catch (error) {
+      console.error('启动服务时出错:', error);
+      // 清理未完全初始化的实例
+      if (miGPTInstance) {
+        try {
+          await miGPTInstance.stop();
+        } catch (stopError) {
+          console.error('清理失败的实例时出错:', stopError);
+        }
+        miGPTInstance = null;
+      }
+      throw new Error(error.message);
+    }
+    console.log('服务启动成功');
+
+    console.log('MiGPT 服务初始化完成');
+    return miGPTInstance;
+  } catch (error) {
+    console.error('初始化失败:', error);
+    console.error('错误堆栈:', error.stack);
+    miGPTInstance = null;
+    throw error;
+  }
+}
+
+/**
+ * 服务启动
+ * @returns {Promise<Object>} 启动状态
+ */
 app.post('/api/service/start', async (req, res) => {
   try {
     console.log('\n=== 启动 MiGPT 服务 ===');
 
-    //删除配置文件
-    deleteBotAndMiFile()
-    // 初始化实例
+    // 1、初始化实例
     const instance = await initMiGPT();
 
     if (!instance || !instance.speaker) {
       throw new Error('服务初始化失败');
     }
 
-    // 检查服务状态
+    // 2、检查服务状态
     if (instance.speaker.status !== 'running') {
       throw new Error('服务启动异常');
     }
@@ -555,7 +445,6 @@ app.post('/api/service/start', async (req, res) => {
         }
       }
     });
-
   } catch (error) {
     console.error('启动服务失败:', error);
     if (miGPTInstance) {
@@ -566,7 +455,10 @@ app.post('/api/service/start', async (req, res) => {
   }
 });
 
-//服务停止
+/**
+ * 服务停止
+ * @returns {Promise<Object>} 停止状态
+ */
 app.post('/api/service/stop', async (req, res) => {
   try {
     if (!miGPTInstance) {
@@ -602,13 +494,13 @@ app.post('/api/service/stop', async (req, res) => {
   }
 });
 
-//服务重启
+/**
+ * 服务重启
+ * @returns {Promise<Object>} 重启状态
+ */
 app.post('/api/service/restart', async (req, res) => {
   try {
     console.log('\n=== 正在重启 MiGPT 服务 ===');
-
-    //删除配置文件
-    deleteBotAndMiFile()
 
     // 1. 停止当前服务
     if (miGPTInstance) {
@@ -622,48 +514,14 @@ app.post('/api/service/restart', async (req, res) => {
       miGPTInstance = null;
     }
 
-    // 2. 等待资源释放
-    console.log('等待资源释放...');
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    // 2.初始化实例
+    const instance = await initMiGPT();
 
-    // 3. 创建新实例
-    console.log('创建新实例...');
-    const configFile = fs.readFileSync('./migpt.js', 'utf8');
-    const configModule = await import(`data:text/javascript,${encodeURIComponent(configFile)}`);
-    const freshConfig = configModule.default;
-
-    // 检查配置
-    if (!freshConfig.speaker?.userId || !freshConfig.speaker?.password) {
-      throw new Error('缺少必要参配置');
-    }
-
-    // 创建实例
-    const instance = MiGPT.create(freshConfig);
     if (!instance || !instance.speaker) {
-      throw new Error('实例创建失败');
+      throw new Error('服务初始化失败');
     }
 
-    // 4. 初始化服务
-    console.log('初始化服务...');
-    await instance.speaker.initMiServices();
-
-    if (!instance.speaker.MiNA) {
-      throw new Error('MiNA 服务初始化失败');
-    }
-
-    // 5. 保存为全局实例
-    miGPTInstance = instance;
-
-    // 6. 启动消息监听（不等待完成）
-    instance.start().catch(error => {
-      console.error('服务运行出错:', error);
-      miGPTInstance = null;
-    });
-
-    // 7. 等待服务就绪
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    // 8. 检查服务状态
+    // 3.检查服务状态
     if (instance.speaker.status !== 'running') {
       throw new Error('服务启动异常');
     }
@@ -793,87 +651,4 @@ app.use((err, req, res, next) => {
   res.status(500).json({
     error: err.message || '服务器内部错误'
   });
-});
-
-// 读取 env.yml 文件
-app.get('/api/config/env', async (req, res) => {
-  try {
-    const envPath = path.join(__dirname, 'env.yml');
-
-    // 检查文件是否存在
-    if (!fs.existsSync(envPath)) {
-      // 如果文件不存在，返回空配置而不是错误
-      return res.json({
-        OPENAI_API_KEY: '',
-        OPENAI_MODEL: '',
-        OPENAI_BASE_URL: '',
-        TTS_BASE_URL: '',
-        TTS_SWITCH_KEYWORDS: ''
-      });
-    }
-
-    const envContent = await readFileSync(envPath, 'utf8');
-    const envConfig = {};
-
-    envContent.split('\n').forEach(line => {
-      const [key, value] = line.split('=');
-      if (key && value) {
-        envConfig[key.trim()] = value.trim();
-      }
-    });
-
-    // 返回所有必需的字段
-    res.json({
-      OPENAI_API_KEY: envConfig.OPENAI_API_KEY || '',
-      OPENAI_MODEL: envConfig.OPENAI_MODEL || '',
-      OPENAI_BASE_URL: envConfig.OPENAI_BASE_URL || '',
-      TTS_BASE_URL: envConfig.TTS_BASE_URL || '',
-      TTS_SWITCH_KEYWORDS: envConfig.TTS_SWITCH_KEYWORDS || ''
-    });
-  } catch (error) {
-    console.error('读取 env.yml 文件失败:', error);
-    // 发生错误时返回空配置而不是错误状态
-    res.json({
-      OPENAI_API_KEY: '',
-      OPENAI_MODEL: '',
-      OPENAI_BASE_URL: '',
-      TTS_BASE_URL: '',
-      TTS_SWITCH_KEYWORDS: ''
-    });
-  }
-});
-
-// 更新 env.yml 文件
-app.post('/api/config/env', async (req, res) => {
-  try {
-    const {OPENAI_API_KEY, OPENAI_MODEL, OPENAI_BASE_URL, TTS_BASE_URL, TTS_SWITCH_KEYWORDS} = req.body;
-
-    // 验证必需的字段
-    if (!OPENAI_API_KEY || !OPENAI_MODEL || !OPENAI_BASE_URL) {
-      return res.status(400).json({
-        success: false,
-        error: '缺少必需的配置字段'
-      });
-    }
-
-    const envContent = `OPENAI_API_KEY: ${OPENAI_API_KEY}
-                               OPENAI_MODEL: ${OPENAI_MODEL}
-                               OPENAI_BASE_URL: ${OPENAI_BASE_URL}
-                               TTS_BASE_URL: ${TTS_BASE_URL || ''}
-                               TTS_SWITCH_KEYWORDS: ${TTS_SWITCH_KEYWORDS || ''}`;
-
-    const envPath = path.join(__dirname, 'env.yml');
-    await fs.promises.writeFile(envPath, envContent, 'utf8');
-
-    res.json({
-      success: true,
-      message: 'env.yml 文件已更新'
-    });
-  } catch (error) {
-    console.error('更新 env.yml 文件失败:', error);
-    res.status(500).json({
-      success: false,
-      error: '更新 env.yml 文件失败: ' + error.message
-    });
-  }
 });
