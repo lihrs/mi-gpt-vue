@@ -18,7 +18,7 @@ app.use(express.urlencoded({extended: true}));
 let miGPTInstance = null;
 
 // 解析配置字符串的函数
-function parseConfig(configStr) {
+const parseConfig = (configStr) => {
   try {
     // 移除 export default 和结尾的分号
     const jsonStr = configStr
@@ -43,7 +43,7 @@ function parseConfig(configStr) {
 }
 
 // 重载配置的函数
-async function reloadMiGPTConfig(newConfig) {
+const reloadMiGPTConfig = async (newConfig) => {
   try {
     if (!miGPTInstance) {
       throw new Error('MiGPT 服务未启动');
@@ -84,7 +84,7 @@ async function reloadMiGPTConfig(newConfig) {
 }
 
 // 初始化 MiGPT 实例
-async function initMiGPT() {
+const initMiGPT = async () => {
   try {
     console.log('正在初始化 MiGPT 服务...');
     console.log('当前实例状态:', miGPTInstance ? '存在' : '不存在');
@@ -231,9 +231,8 @@ const updateConfig = (parsedConfig, config) => {
     }
   }
 }
-/**
- * 管理端
- */
+
+//管理端 配置config
 app.post('/api/admin/config', async (req, res) => {
   try {
     const config = req.body;
@@ -361,7 +360,7 @@ app.post('/api/config', async (req, res) => {
 
     // 写入到 migpt.js 配置文件
     await fs.promises.writeFile('./migpt.js', configContent, 'utf8');
-    await fs.promises.writeFile('./.migpt.example.js', configContent, 'utf8');
+    //await fs.promises.writeFile('./.migpt.example.js', configContent, 'utf8');
 
     // 获取当前选中的 AI 服务配置
     // const selectedService = Object.keys(config).find(key =>
@@ -482,6 +481,7 @@ app.get('/api/config/example', async (req, res) => {
   }
 });
 
+//服务健康检查
 app.get('/api/service/health', (req, res) => {
   res.setHeader('Content-Type', 'application/json');
 
@@ -521,6 +521,8 @@ app.get('/api/service/health', (req, res) => {
     });
   }
 });
+
+//服务启动
 app.post('/api/service/start', async (req, res) => {
   try {
     console.log('\n=== 启动 MiGPT 服务 ===');
@@ -563,6 +565,8 @@ app.post('/api/service/start', async (req, res) => {
     res.status(500).json({error: error.message});
   }
 });
+
+//服务停止
 app.post('/api/service/stop', async (req, res) => {
   try {
     if (!miGPTInstance) {
@@ -597,6 +601,8 @@ app.post('/api/service/stop', async (req, res) => {
     res.status(500).json({error: '停止服务失败: ' + error.message});
   }
 });
+
+//服务重启
 app.post('/api/service/restart', async (req, res) => {
   try {
     console.log('\n=== 正在重启 MiGPT 服务 ===');
@@ -702,7 +708,7 @@ app.get('*', (req, res) => {
 });
 
 // 修改检查端口是否可用的函数
-function isPortAvailable(port) {
+const isPortAvailable = (port) => {
   return new Promise((resolve) => {
     const server = createServer();
 
@@ -722,7 +728,7 @@ function isPortAvailable(port) {
 }
 
 // 查找可用端口的函数
-async function findAvailablePort(startPort) {
+const findAvailablePort = async (startPort) => {
   let port = startPort;
   while (!(await isPortAvailable(port))) {
     port++;
@@ -755,6 +761,15 @@ const startServer = async () => {
     process.exit(1);
   }
 };
+
+/**
+ * 重启服务器
+ */
+const restartServer = async () => {
+  app.close(()=>{
+    startServer();
+  });
+}
 
 // 启动服务器
 startServer();
