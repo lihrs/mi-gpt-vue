@@ -1,10 +1,10 @@
 export default {
   "bot": {
-    "name": "小智a",
+    "name": "小智",
     "profile": ""
   },
   "master": {
-    "name": "主人222",
+    "name": "主人",
     "profile": ""
   },
   "speaker": {
