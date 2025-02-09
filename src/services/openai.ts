@@ -32,19 +32,17 @@ class OpenAIClient {
   private _client?: OpenAI;
 
   private _init() {
-    this.deployment = kEnvs.AZURE_OPENAI_DEPLOYMENT;
+    this.deployment = kEnvs().AZURE_OPENAI_DEPLOYMENT;
     if (!this._client) {
-      console.log(1111111111)
-      console.log(kEnvs.OPENAI_API_KEY)
-      this._client = kEnvs.AZURE_OPENAI_API_KEY
+      this._client = kEnvs().AZURE_OPENAI_API_KEY
         ? new AzureOpenAI({
           httpAgent: kProxyAgent,
           deployment: this.deployment,
         })
         : new OpenAI({
-          apiKey: kEnvs.OPENAI_API_KEY,
+          apiKey: kEnvs().OPENAI_API_KEY,
           httpAgent: kProxyAgent,
-          baseURL: kEnvs.OPENAI_BASE_URL
+          baseURL: kEnvs().OPENAI_BASE_URL
         });
     }
   }
@@ -70,7 +68,7 @@ class OpenAIClient {
       jsonMode,
       requestId,
       trace = false,
-      model = this.deployment ?? kEnvs.OPENAI_MODEL ?? "gpt-4o",
+      model = this.deployment ?? kEnvs().OPENAI_MODEL ?? "gpt-4o",
     } = options;
     if (trace && this.traceInput) {
       this._logger.log(
@@ -122,8 +120,8 @@ class OpenAIClient {
       requestId,
       onStream,
       trace = false,
-      model = this.deployment ?? kEnvs.OPENAI_MODEL ?? "gpt-4o",
-      enableSearch = kEnvs.QWEN_ENABLE_SEARCH,
+      model = this.deployment ?? kEnvs().OPENAI_MODEL ?? "gpt-4o",
+      enableSearch = kEnvs().QWEN_ENABLE_SEARCH,
     } = options;
     if (trace && this.traceInput) {
       this._logger.log(

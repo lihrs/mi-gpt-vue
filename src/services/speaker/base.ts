@@ -113,7 +113,7 @@ export class BaseSpeaker {
       playingCommand,
       ttsCommand = [5, 1],
       wakeUpCommand = [5, 3],
-      audioBeep = kEnvs.AUDIO_BEEP,
+      audioBeep = kEnvs().AUDIO_BEEP,
     } = config;
     this.debug = debug;
     this.streamResponse = streamResponse;
@@ -206,7 +206,7 @@ export class BaseSpeaker {
       return;
     }
 
-    const customTTS = kEnvs.TTS_BASE_URL;
+    const customTTS = kEnvs().TTS_BASE_URL;
     if (!customTTS) {
       tts = "xiaoai"; // 没有提供 TTS 接口时，只能使用小爱自带 TTS
     }
@@ -405,7 +405,7 @@ export class BaseSpeaker {
       switch (tts) {
         case "custom":
           const _text = encodeURIComponent(ttsText);
-          const url = `${kEnvs.TTS_BASE_URL}/tts.mp3?speaker=${
+          const url = `${kEnvs().TTS_BASE_URL}/tts.mp3?speaker=${
             speaker || ""
           }&text=${_text}`;
           res = await play({url});
@@ -423,8 +423,8 @@ export class BaseSpeaker {
   private _currentSpeaker: string | undefined;
 
   async switchSpeaker(speaker: string) {
-    if (!this._speakers && kEnvs.TTS_BASE_URL) {
-      const resp = await fetch(`${kEnvs.TTS_BASE_URL}/speakers`).catch(
+    if (!this._speakers && kEnvs().TTS_BASE_URL) {
+      const resp = await fetch(`${kEnvs().TTS_BASE_URL}/speakers`).catch(
         () => null
       );
       const res = await resp?.json().catch(() => null);

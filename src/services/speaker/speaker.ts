@@ -57,7 +57,7 @@ export class Speaker extends BaseSpeaker {
     const {
       heartbeat = 1000,
       exitKeepAliveAfter = 30,
-      audioSilent = kEnvs.AUDIO_SILENT,
+      audioSilent = kEnvs().AUDIO_SILENT,
     } = config;
     this.audioSilent = audioSilent;
     this._commands = config.commands ?? [];

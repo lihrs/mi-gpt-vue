@@ -1,10 +1,12 @@
-import {MiGPT} from "./dist/index.cjs";
-import fs, {readFileSync} from 'fs';
+import { MiGPT } from "./dist/index.cjs";
+import fs, { readFileSync } from 'fs';
 import express from 'express';
 import bodyParser from 'body-parser';
 import path from 'path';
-import {fileURLToPath} from 'url';
-import {createServer} from 'net';
+import { fileURLToPath } from 'url';
+import { createServer } from 'net';
+import globalCatch from "global-cache";
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,7 +14,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 app.use(bodyParser.json());
-app.use(express.urlencoded({extended: true}));
+app.use(express.urlencoded({ extended: true }));
 
 let miGPTInstance = null;
 
@@ -155,7 +157,7 @@ app.get('/api/admin/config', async (req, res) => {
     //console.log('读取到的配置:', parsedConfig); // 添加调试日志
 
     res.setHeader('Content-Type', 'application/json');
-    res.json({parsedConfig});
+    res.json({ parsedConfig });
   } catch (error) {
     console.error('读配置失败:', error);
     // 返回更详细的错误信息
@@ -216,7 +218,7 @@ app.get('/api/config', async (req, res) => {
     //console.log('读取到的配置:', newConfig); // 添加调试日志
 
     res.setHeader('Content-Type', 'application/json');
-    res.json({newConfig});
+    res.json({ newConfig });
   } catch (error) {
     //console.error('读配置失败:', error);
     // 返回更详细的错误信息
@@ -314,7 +316,7 @@ const initMiGPT = async () => {
     }
 
     let envLines = {};
-     // 4. 设置环境变量值
+    // 4. 设置环境变量值
     if (freshConfig['selectedAIService']) {
       const selectedAIServiceConfig = freshConfig[freshConfig['selectedAIService']];
       envLines = {
@@ -323,15 +325,11 @@ const initMiGPT = async () => {
         OPENAI_BASE_URL: selectedAIServiceConfig.endpoint.replace('/chat/completions', '')
       }
     }
-     // 如果使用自定义 TTS，添加 TTS 配置到环境变量
-     if (freshConfig.speaker?.tts === 'custom' && freshConfig.tts?.baseUrl) {
+    // 如果使用自定义 TTS，添加 TTS 配置到环境变量
+    if (freshConfig.speaker?.tts === 'custom' && freshConfig.tts?.baseUrl) {
       envLines['TTS_BASE_URL'] = freshConfig.tts.baseUrl;
     }
-    process.env = envLines;
-
-     console.log(11111)
-     console.log(process.env)
-
+    globalCatch.set('env', envLines);
 
     // 5. 创建新实例
     console.log('创建新实例...');
@@ -371,7 +369,7 @@ const initMiGPT = async () => {
 
         // 启动服务（不等待完成）
         miGPTInstance.start().catch(error => {
-          console.error('消息监听循环出错:', error);
+          throw new Error("消息监听循环出错", error);
         });
 
         // 等待一小段时间确保服务正常启动
@@ -451,7 +449,7 @@ app.post('/api/service/start', async (req, res) => {
       await miGPTInstance.stop();
     }
     miGPTInstance = null;
-    res.status(500).json({error: error.message});
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -463,7 +461,7 @@ app.post('/api/service/stop', async (req, res) => {
   try {
     if (!miGPTInstance) {
       res.setHeader('Content-Type', 'application/json');
-      res.status(400).json({error: '服务未运行'});
+      res.status(400).json({ error: '服务未运行' });
       return;
     }
 
@@ -486,11 +484,11 @@ app.post('/api/service/stop', async (req, res) => {
     console.log('MiGPT 服务已停止');
     console.log('========================\n');
 
-    res.json({success: true});
+    res.json({ success: true });
   } catch (error) {
     console.error('停止服务失败:', error);
     miGPTInstance = null;
-    res.status(500).json({error: '停止服务失败: ' + error.message});
+    res.status(500).json({ error: '停止服务失败: ' + error.message });
   }
 });
 
@@ -624,7 +622,7 @@ const startServer = async () => {
  * 重启服务器
  */
 const restartServer = async () => {
-  app.close(()=>{
+  app.close(() => {
     startServer();
   });
 }

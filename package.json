@@ -34,10 +34,10 @@
     "body-parser": "^1.20.3",
     "express": "^4.21.2",
     "fs-extra": "^11.2.0",
-    "js-yaml": "^4.1.0",
+    "global-cache": "^1.2.1",
     "openai": "^4.56.0",
-    "prisma": "^5.14.0",
     "pako": "^2.1.0",
+    "prisma": "^5.14.0",
     "proxy-agent": "^6.4.0"
   },
   "devDependencies": {

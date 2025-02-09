@@ -1,4 +1,6 @@
-export const kEnvs: Partial<{
+import globalCatch from "global-cache";
+
+export const kEnvs = (): Partial<{
   MI_USER: string;
   MI_PASS: string;
   MI_DID: string;
@@ -7,13 +9,13 @@ export const kEnvs: Partial<{
   OPENAI_BASE_URL: string;
   AZURE_OPENAI_API_KEY: string;
   AZURE_OPENAI_DEPLOYMENT: string;
-  AUDIO_SILENT:string;
-  AUDIO_BEEP:string;
-  AUDIO_ACTIVE:string;
-  AUDIO_ERROR:string;
-  TTS_BASE_URL:string;
+  AUDIO_SILENT: string;
+  AUDIO_BEEP: string;
+  AUDIO_ACTIVE: string;
+  AUDIO_ERROR: string;
+  TTS_BASE_URL: string;
   QWEN_ENABLE_SEARCH: boolean;
-}> = {
-  ...process.env,
-  QWEN_ENABLE_SEARCH: process.env.QWEN_ENABLE_SEARCH === 'true'
-} as any;
+}> => {
+  return globalCatch.get('env') || {};
+};
+

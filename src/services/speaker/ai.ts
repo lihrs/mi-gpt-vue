@@ -120,8 +120,8 @@ export class AISpeaker extends Speaker {
       onAIAsking = ["让我先想想", "请稍等"],
       onAIReplied = ["我说完了", "还有其他问题吗"],
       onAIError = ["啊哦，出错了，请稍后再试吧！"],
-      audioActive = kEnvs.AUDIO_ACTIVE,
-      audioError = kEnvs.AUDIO_ERROR,
+      audioActive = kEnvs().AUDIO_ACTIVE,
+      audioError = kEnvs().AUDIO_ERROR,
     } = config;
     this.askAI = askAI;
     this.name = name;
