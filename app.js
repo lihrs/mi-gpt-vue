@@ -138,13 +138,14 @@ app.post('/api/admin/config', async (req, res) => {
     // 如果服务正在运行，需要重启才能生效
     const needRestart = miGPTInstance !== null;
 
+    restartServer()
+
     res.setHeader('Content-Type', 'application/json');
     res.json({
       success: true,
       message: '配置已保存,正在重启服务',
       needRestart
     });
-    restartServer()
   } catch (error) {
     console.error('保存配置失败:', error);
     res.status(500).json({
@@ -455,20 +456,14 @@ app.post('/api/service/start', async (req, res) => {
   }
 });
 
+
 /**
- * 服务停止
+ * 服务MiGPT停止
  * @returns {Promise<Object>} 停止状态
  */
-app.post('/api/service/stop', async (req, res) => {
-  try {
-    if (!miGPTInstance) {
-      res.setHeader('Content-Type', 'application/json');
-      res.status(400).json({ error: '服务未运行' });
-      return;
-    }
-
+const miGPTServiceStop = async () => {
+  if (miGPTInstance) {
     console.log('\n=== 正在停止 MiGPT 服务 ===');
-
     try {
       // 使用 stop() 方法停止服务
       await miGPTInstance.stop();
@@ -481,10 +476,25 @@ app.post('/api/service/stop', async (req, res) => {
     miGPTInstance = null;
 
     // 等待资源释放
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
+    //await new Promise(resolve => setTimeout(resolve, 2000));
     console.log('MiGPT 服务已停止');
     console.log('========================\n');
+  }
+}
+
+/**
+ * 服务停止
+ * @returns {Promise<Object>} 停止状态
+ */
+app.post('/api/service/stop', async (req, res) => {
+  try {
+    if (!miGPTInstance) {
+      res.setHeader('Content-Type', 'application/json');
+      res.status(400).json({ error: '服务未运行' });
+      return;
+    }
+
+    await miGPTServiceStop()
 
     res.json({ success: true });
   } catch (error) {
@@ -504,14 +514,7 @@ app.post('/api/service/restart', async (req, res) => {
 
     // 1. 停止当前服务
     if (miGPTInstance) {
-      console.log('停止当前服务...');
-      try {
-        await miGPTInstance.stop();
-        console.log('服务已停止');
-      } catch (stopError) {
-        console.error('停止服务时出错:', stopError);
-      }
-      miGPTInstance = null;
+      await miGPTServiceStop()
     }
 
     // 2.初始化实例
@@ -626,6 +629,7 @@ const startServer = async () => {
 const restartServer = async () => {
   if (appServer) {
     console.log('正在关闭服务器...');
+    await miGPTServiceStop()
     appServer.close(() => {
       console.log('服务器已关闭，正在重启...');
       startServer();

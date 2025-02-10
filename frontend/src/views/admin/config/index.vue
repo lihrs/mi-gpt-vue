@@ -1381,6 +1381,7 @@ export default {
 
         this.$message.success(data.message);
 
+        await this.checkServiceHealth();
         // 重新加载配置以确保显示正确的内容
         await this.loadConfig();
 
