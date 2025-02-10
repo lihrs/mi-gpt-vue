@@ -141,9 +141,10 @@ app.post('/api/admin/config', async (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     res.json({
       success: true,
-      message: '配置已保存,需要重启服务',
+      message: '配置已保存,正在重启服务',
       needRestart
     });
+    restartServer()
   } catch (error) {
     console.error('保存配置失败:', error);
     res.status(500).json({
@@ -192,10 +193,11 @@ app.post('/api/config', async (req, res) => {
     // 如果服务正在运行，需要重启才能生效
     const needRestart = miGPTInstance !== null;
 
+    restartServer()
     res.setHeader('Content-Type', 'application/json');
     res.json({
       success: true,
-      message: '配置已保存,需要重启服务',
+      message: '配置已保存,正在重启服务',
       needRestart
     });
   } catch (error) {
@@ -594,14 +596,14 @@ const findAvailablePort = async (startPort) => {
   }
   return port;
 }
-
+let appServer; // 用于存储 HTTP 服务器实例
 // 修改启动服务器的代码
 const startServer = async () => {
   try {
     const preferredPort = process.env.PORT || 3000;
     const port = await findAvailablePort(preferredPort);
 
-    app.listen(port, async () => {
+    appServer = app.listen(port, async () => {
       console.log('\n=== 服务器启动信息 ===');
       console.log(`Web 服务运行: http://localhost:${port}`);
       if (port !== preferredPort) {
@@ -622,9 +624,16 @@ const startServer = async () => {
  * 重启服务器
  */
 const restartServer = async () => {
-  app.close(() => {
+  if (appServer) {
+    console.log('正在关闭服务器...');
+    appServer.close(() => {
+      console.log('服务器已关闭，正在重启...');
+      startServer();
+    });
+  } else {
+    console.log('服务器未运行，直接启动...');
     startServer();
-  });
+  }
 }
 
 // 启动服务器

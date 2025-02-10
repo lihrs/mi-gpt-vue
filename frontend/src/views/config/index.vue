@@ -659,7 +659,7 @@ export default {
           throw new Error(data.error || "保存失败");
         }
 
-        this.$message.success("配置保存成功");
+        this.$message.success(data.message);
 
         // 重新加载配置以确保显示正确的内容
         await this.loadConfig();
