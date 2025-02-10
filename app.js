@@ -138,7 +138,7 @@ app.post('/api/admin/config', async (req, res) => {
     // 如果服务正在运行，需要重启才能生效
     const needRestart = miGPTInstance !== null;
 
-    restartServer()
+    await restartServer()
 
     res.setHeader('Content-Type', 'application/json');
     res.json({
@@ -194,7 +194,7 @@ app.post('/api/config', async (req, res) => {
     // 如果服务正在运行，需要重启才能生效
     const needRestart = miGPTInstance !== null;
 
-    restartServer()
+    await restartServer()
     res.setHeader('Content-Type', 'application/json');
     res.json({
       success: true,
@@ -624,19 +624,44 @@ const startServer = async () => {
 };
 
 /**
+ * 
+ * @returns 
+ */
+const closeServer = async () => {
+  console.log('正在关闭服务器...');
+  return new Promise((resolve, reject) => {
+    if (appServer) {
+      console.log('222...');
+      appServer.close(() => {
+        console.log('333...');
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    } else {
+      resolve();
+    }
+  });
+}
+
+/**
  * 重启服务器
  */
 const restartServer = async () => {
   if (appServer) {
-    console.log('正在关闭服务器...');
-    await miGPTServiceStop()
-    appServer.close(() => {
+    try {
+      await miGPTServiceStop()
+      await closeServer()
       console.log('服务器已关闭，正在重启...');
-      startServer();
-    });
+      await startServer();
+    } catch (error) {
+      console.error('重启服务器失败:', error);
+    }
   } else {
     console.log('服务器未运行，直接启动...');
-    startServer();
+    await startServer();
   }
 }
 

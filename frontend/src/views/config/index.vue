@@ -395,7 +395,7 @@
       </el-tabs>
 
       <div class="form-actions">
-        <el-button type="primary" @click="saveConfig"> 保存配置 </el-button>
+        <el-button type="primary" @click="saveConfig" :loading="loading"> 保存配置 </el-button>
       </div>
     </el-card>
   </div>
@@ -499,6 +499,7 @@ export default {
       variableTableData: variableList,
       selectedTTSEngine: "xiaoai",
       ttsEngines,
+      loading:false
     };
   },
   methods: {
@@ -602,6 +603,7 @@ export default {
     },
     async saveConfig() {
       try {
+        this.loading = true
         // 同时验证基础配置表单和 AI 配置表单
         const [basicValid] = await Promise.all([
           this.$refs.configForm.validate(),
@@ -667,9 +669,11 @@ export default {
 
         // 同步到 JSON 编辑器
         this.syncConfigToJson();
+        this.loading = false
       } catch (error) {
         console.error("保存配置失败:", error);
         this.$message.error("保存配置失败: " + error.message);
+        this.loading = false
       }
     },
     syncConfigToJson() {
